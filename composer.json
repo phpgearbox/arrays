@@ -1,0 +1,14 @@
+{
+	"name": "gears/array",
+	"description": "A collection of array conversions and manipulators.",
+	"homepage": "https://github.com/phpgearbox/array",
+	"keywords": ["string", "manipulation"],
+	"license": "MIT",
+	"require": { "php": ">=5.3" },
+	"autoload":
+	{
+		"psr-0": { "Gears\\Array\\": "" },
+		"files": ["Gears/Array/Functions.php"]
+	},
+	"target-dir": "Gears/Array"
+}
