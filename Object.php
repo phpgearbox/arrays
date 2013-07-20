@@ -11,9 +11,14 @@
 // =============================================================================
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Gears\Array;
+namespace Gears\Arrays;
 
-class Object
+class Object extends \ArrayAccess
 {
+	private $data;
 	
+	public function __construct()
+	{
+		
+	}
 }

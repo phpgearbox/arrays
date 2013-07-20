@@ -2,4 +2,27 @@
 
 require('Functions.php');
 
-Gears\Arrays\Debug([1,2,3]);
+$array =
+[
+	'abc' =>
+	[
+		'123',
+		'456',
+		'789'
+	],
+	'xyz' =>
+	[
+		'abc' =>
+		[
+			'123',
+			'456',
+			'789',
+			'test' =>
+			[
+				'123'
+			]
+		]
+	]
+];
+
+Gears\Arrays\Debug(Gears\Arrays\Search($array, '12', false));
