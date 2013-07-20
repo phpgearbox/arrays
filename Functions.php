@@ -11,88 +11,141 @@
 // =============================================================================
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Gears\Array;
+namespace Gears\Arrays;
 
-/*
- * METHOD: Search
- * -------------------------------------------------------------------------
+/**
+ * Function: Search
+ * =============================================================================
  * This will search an array recursively for your search terms.
  * 
  * Parameters:
- * 	$search - The search query
- * 	$exact - Defaults to true, If false search tersm can simply appear inside the array values.
- * 	$trav_keys - 
- * 	$arr - Used when called recursively
+ * -----------------------------------------------------------------------------
+ * $array - The array to search within.
+ * $search - The search query.
+ * $exact - If false search terms can simply appear inside the array values.
+ * $trav_keys - Used recursively
  * 
  * Returns:
- * 	array
+ * -----------------------------------------------------------------------------
+ * An array of results or false if it can find anything
  */
-function Search($search, $exact = true, $trav_keys = null, $arr = null)
+function Search($array, $search, $exact = true, $trav_keys = null)
 {
-	// Replace the default array value with the one from the class
-	if ($arr == null) $arr = $this->data;
-	
 	// Check to make sure we have something to search for and search in.
-	if(!is_array($arr) || !$search || ($trav_keys && !is_array($trav_keys)))
+	if(!is_array($array) || !$search || ($trav_keys && !is_array($trav_keys)))
+	{
 		return false;
+	}
 	
 	// Create a Results array
-	$res_arr = array();
+	$results = [];
 	
 	// Loop through each value in the array
-	foreach($arr as $key => $val)
+	foreach($array as $key => $val)
 	{
-		$used_keys = $trav_keys ? array_merge($trav_keys,array($key)) : array($key);
-		if (($key === $search) || (!$exact && (strpos(strtolower($key),strtolower($search))!==false)))
+		// Create a list of keys that we used to find the result
+		$used_keys = $trav_keys ? array_merge($trav_keys, [$key]) : [$key];
+		
+		// Check for an exact hit on the key
+		if ($key === $search)
 		{
-			$res_arr[] = array(
+			$results[] =
+			[
 				'type' => "key",
 				'hit' => $key,
 				'keys' => $used_keys,
 				'val' => $val
-			);
+			];
+		}
+		
+		// Can we match to non exact hits?
+		elseif (!$exact)
+		{
+			// Check to see if the array key contains the search term
+			if (strpos(strtolower($key), strtolower($search)) !== false)
+			{
+				$results[] =
+				[
+					'type' => "key",
+					'hit' => $key,
+					'keys' => $used_keys,
+					'val' => $val
+				];
+			}
 		}
 		
 		// Check to see if the value is another nested array
 		if (is_array($val))
 		{
-			$children_res = $this->search($search, $exact, $used_keys, $val);
-			if ($children_res) $res_arr = array_merge($res_arr, $children_res);
+			// Recursively call ourselves
+			$children_results = Search($val, $search, $exact, $used_keys);
+			if ($children_res)
+			{
+				$results = array_merge($results, $children_results);
+			}
 		}
-		elseif (($val === $search) || (!$exact && (strpos(strtolower($val),strtolower($search))!==false)))
+		
+		// Check for an exact hit on the value
+		elseif ($val === $search)
 		{
-			$res_arr[] = array(
+			$res_arr[] =
+			[
 				'type' => "val",
 				'hit' => $val,
 				'keys' => $used_keys,
 				'val' => $val
-			);
+			];
+		}
+		
+		// Can we match to non exact hits?
+		elseif (!$exact)
+		{
+			// Check to see if the array key contains the search term
+			if (strpos(strtolower($val), strtolower($search)) !== false)
+			{
+				$results[] =
+				[
+					'type' => "val",
+					'hit' => $val,
+					'keys' => $used_keys,
+					'val' => $val
+				];
+			}
 		}
 	}
 	
 	// Return our results
-	return $res_arr ? $res_arr : false;
+	return $results ? $results : false;
 }
 
-/*
- * METHOD: Debug
- * -------------------------------------------------------------------------
- * This will output an array for debug purposes.
+/**
+ * Function: Debug
+ * =============================================================================
+ * This will output an array for debug purposes. If running from a web server
+ * we will wrap it in some pre tags for you.
  * 
  * Parameters:
- * 	$html - Defaults to true, If true the output will be surrounded by <pre> tags
+ * -----------------------------------------------------------------------------
+ * $array - The array to output.
  * 
  * Returns:
- * 	void
+ * -----------------------------------------------------------------------------
+ * void
  */
-function Debug($html = true)
+function Debug($array)
 {
-	if ($html == true)
+	// are we running on the command line or in a browser
+	if (php_sapi_name() == 'cli')
 	{
-		echo '<div align="left"><pre>'.print_r($this->data, true).'</pre></div>';
+		echo "\n\nARRAY DUMP:\n-----\n".print_r($array, true)."\n\n";
 	}
 	else
 	{
-		echo "ARRAY DUMP:\n-----\n".var_dump($this->data, true)."\n\n";
+		echo
+			'<div style="text-align:left;">'.
+				'<h1>ARRAY DUMP</h1><hr>'.
+				'<pre>'.print_r($array, true).'</pre>'.
+			'</div>'
+		;
 	}
 }
