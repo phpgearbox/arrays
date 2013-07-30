@@ -14,6 +14,38 @@
 namespace Gears\Arrays;
 
 /**
+ * Function: Debug
+ * =============================================================================
+ * This will output an array for debug purposes. If running from a web server
+ * we will wrap it in some pre tags for you.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to output.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
+ */
+function Debug($array)
+{
+	// are we running on the command line or in a browser
+	if (php_sapi_name() == 'cli')
+	{
+		echo "\n\nARRAY DUMP:\n-----\n".print_r($array, true)."\n\n";
+	}
+	else
+	{
+		echo
+			'<div style="text-align:left;">'.
+				'<h1>ARRAY DUMP</h1><hr>'.
+				'<pre>'.print_r($array, true).'</pre>'.
+			'</div>'
+		;
+	}
+}
+
+/**
  * Function: Search
  * =============================================================================
  * This will search an array recursively for your search terms.
@@ -119,84 +151,70 @@ function Search($array, $search, $exact = true, $trav_keys = null)
 }
 
 /**
- * Function: Debug
+ * Function: GetNested
  * =============================================================================
- * This will output an array for debug purposes. If running from a web server
- * we will wrap it in some pre tags for you.
+ * Retrieves a nested element from an array or $default if it doesn't exist.
+ * 
+ * 	$friends =
+ * 	[
+ * 		'Alice' => ['age' => 33, 'hobbies' => ['biking', 'skiing']],
+ * 		'Bob' => ['age' => 29],
+ * 	];
+ * 	
+ * 	GetNested($friends, 'Alice.hobbies.1'); //=> 'skiing'
+ * 	GetNested($friends, ['Alice', 'hobbies', 1]); //=> 'skiing'
+ * 	GetNested($friends, 'Bob.hobbies.0', 'none'); //=> 'none'
  * 
  * Parameters:
  * -----------------------------------------------------------------------------
- * $array - The array to output.
+ * $array - The array to search for your key
+ * $keys  - The key path as either an array or a dot-separated string
+ * $default - An optional default to return when the key doesn't exist.
  * 
  * Returns:
  * -----------------------------------------------------------------------------
- * void
- */
-function Debug($array)
-{
-	// are we running on the command line or in a browser
-	if (php_sapi_name() == 'cli')
-	{
-		echo "\n\nARRAY DUMP:\n-----\n".print_r($array, true)."\n\n";
-	}
-	else
-	{
-		echo
-			'<div style="text-align:left;">'.
-				'<h1>ARRAY DUMP</h1><hr>'.
-				'<pre>'.print_r($array, true).'</pre>'.
-			'</div>'
-		;
-	}
-}
-
-// ----- Single element access -----
-
-/**
- * Retrieves a nested element from an array or $default if it doesn't exist
- *
- * <code>
- * $friends = [
- *      'Alice' => ['age' => 33, 'hobbies' => ['biking', 'skiing']],
- *      'Bob' => ['age' => 29],
- * ];
- *
- * Arr::getNested($friends, 'Alice.hobbies.1'); //=> 'skiing'
- * Arr::getNested($friends, ['Alice', 'hobbies', 1]); //=> 'skiing'
- * Arr::getNested($friends, 'Bob.hobbies.0', 'none'); //=> 'none'
- * </code>
- *
- * @param array $array
- * @param string|array $keys The key path as either an array or a dot-separated string
- * @param mixed $default
- * @return mixed
+ * mixed
  */
 function GetNested($array, $keys, $default = null)
 {
-	if (is_string($keys)) {
+	if (is_string($keys))
+	{
 		$keys = explode('.', $keys);
-	} else if ($keys === null) {
+	}
+	else if ($keys === null)
+	{
 		return $array;
 	}
-
-	foreach ($keys as $key) {
-		if (is_array($array) && array_key_exists($key, $array)) {
+	
+	foreach ($keys as $key)
+	{
+		if (is_array($array) && array_key_exists($key, $array))
+		{
 			$array = $array[$key];
-		} else {
+		}
+		else
+		{
 			return $default;
 		}
 	}
-
+	
 	return $array;
 }
 
 /**
+ * Function: GetOrElse
+ * =============================================================================
  * Returns the value at the given index or $default if it not present
- *
- * @param array $array
- * @param int|string $key
- * @param mixed $default
- * @return mixed
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search
+ * $key - The key to search for
+ * $default - An optional default to return when the key doesn't exist.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function GetOrElse($array, $key, $default = null)
 {
@@ -204,75 +222,108 @@ function GetOrElse($array, $key, $default = null)
 }
 
 /**
- * Returns the value at the given index. If not present, inserts $default and returns it
- *
- * @param array $array
- * @param int|string $key
- * @param mixed $default
- * @return mixed
+ * Function: GetOrPut
+ * =============================================================================
+ * Returns the value at the given index. If not present,
+ * inserts $default and returns it
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search / update.
+ * $key - The key to search for
+ * $default - An optional default to be inserted when the key doesn't exist.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function GetOrPut(&$array, $key, $default = null)
 {
-	if (!array_key_exists($key, $array)) {
+	if (!array_key_exists($key, $array))
+	{
 		$array[$key] = $default;
 	}
-
+	
 	return $array[$key];
 }
 
 /**
+ * Function: GetAndDelete
+ * =============================================================================
  * Deletes and returns a value from an array
- *
- * @param array $array
- * @param int|string $key
- * @param mixed $default
- * @return mixed
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search / update.
+ * $key - The key to search for
+ * $default - An optional default to return when the key doesn't exist.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function GetAndDelete(&$array, $key, $default = null)
 {
-	if (array_key_exists($key, $array)) {
+	if (array_key_exists($key, $array))
+	{
 		$result = $array[$key];
 		unset($array[$key]);
 		return $result;
-	} else {
+	}
+	else
+	{
 		return $default;
 	}
 }
 
-
-// ----- Slicing -----
-
 /**
+ * Function: TakeWhile
+ * =============================================================================
  * Returns longest prefix of elements that satisfy the $predicate.
- *
  * The predicate will be passed value and key of each element.
- *
- * @param array $array
- * @param callable $predicate ($value, $key) -> bool
- * @return array
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to slice
+ * $predicate - A function that will evaluate ($value, $key) -> bool
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function TakeWhile($array, $predicate)
 {
 	$n = 0;
-	foreach ($array as $key => $value) {
+	
+	foreach ($array as $key => $value)
+	{
 		if (!$predicate($value, $key)) break;
 		++$n;
 	}
-
+	
 	return array_slice($array, 0, $n);
 }
 
 /**
+ * Function: DropWhile
+ * =============================================================================
  * Drops longest prefix of elements satisfying $predicate and returns the rest.
- *
- * @param array $array
- * @param callable $predicate ($value, $key) -> bool
- * @return array
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to slice
+ * $predicate - A function that will evaluate ($value, $key) -> bool
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function DropWhile($array, $predicate)
 {
 	$n = 0;
-	foreach ($array as $key => $val) {
+	
+	foreach ($array as $key => $val)
+	{
 		if (!$predicate($val, $key)) break;
 		++$n;
 	}
@@ -281,19 +332,28 @@ function DropWhile($array, $predicate)
 }
 
 /**
+ * Function: Repeat
+ * =============================================================================
  * Repeats the array $n times.
- *
  * TODO: Convert to iterator to conserve memory and time
- *
- * @param array $array
- * @param int $n
- * @return array
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to repeat
+ * $n - How many times to repeat
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function Repeat($array, $n)
 {
 	$result = array();
-	while ($n-- > 0) {
-		foreach ($array as $value) {
+	
+	while ($n-- > 0)
+	{
+		foreach ($array as $value)
+		{
 			$result[] = $value;
 		}
 	}
@@ -301,90 +361,117 @@ function Repeat($array, $n)
 	return $result;
 }
 
-
-// ----- Finding -----
-
 /**
+ * Function: Find
+ * =============================================================================
  * Returns the first value of the array satisfying the $predicate or $default
- *
- * @param array $array
- * @param callable $predicate ($value, $key) -> bool
- * @param mixed $default
- * @return mixed|null
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search
+ * $predicate - callable ($value, $key) -> bool
+ * $default - An optional value to return when nothing is found
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function Find($array, $predicate, $default = null)
 {
-	foreach ($array as $key => $value) {
-		if ($predicate($value, $key)) {
+	foreach ($array as $key => $value)
+	{
+		if ($predicate($value, $key))
+		{
 			return $value;
 		}
 	}
-
+	
 	return $default;
 }
 
 /**
+ * Function: FindLast
+ * =============================================================================
  * Returns the last value of the array satisfying the $predicate or $default
- *
- * @param array $array
- * @param callable $predicate ($value, $key) -> bool
- * @param mixed $default
- * @return mixed|null
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search
+ * $predicate - callable ($value, $key) -> bool
+ * $default - An optional value to return when nothing is found
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function FindLast($array, $predicate, $default = null)
 {
-	return self::find(array_reverse($array, true), $predicate, $default);
+	return Find(array_reverse($array, true), $predicate, $default);
 }
 
 /**
+ * Function: FindKey
+ * =============================================================================
  * Returns the first key satisfying the $predicate or null
- *
- * @param array $array
- * @param callable $predicate ($value, $key) -> bool
- * @return int|null|string
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search
+ * $predicate - callable ($value, $key) -> bool
+ * $default - An optional value to return when nothing is found
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
-function FindKey($array, $predicate)
+function FindKey($array, $predicate, $default = null)
 {
-	foreach ($array as $key => $value) {
-		if ($predicate($value, $key)) {
+	foreach ($array as $key => $value)
+	{
+		if ($predicate($value, $key))
+		{
 			return $key;
 		}
 	}
-
-	return null;
+	
+	return $default;
 }
 
 /**
+ * Function: FindLastKey
+ * =============================================================================
  * Returns the last key satisfying the $predicate or null
- *
- * @param array $array
- * @param callable $predicate ($value, $key) -> bool
- * @return int|null|string
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search
+ * $predicate - callable ($value, $key) -> bool
+ * $default - An optional value to return when nothing is found
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
-function FindLastKey($array, $predicate)
+function FindLastKey($array, $predicate, $default = null)
 {
-	return self::findKey(array_reverse($array, true), $predicate);
+	return FindKey(array_reverse($array, true), $predicate, $default);
 }
-
-function lastIndexOf($array, $value, $strict = true)
-{
-	$index = array_search($value, array_reverse($array, true), $strict);
-	return $index === false ? null : $index;
-}
-
-
-// ----- Hash operations -----
 
 /**
+ * Function: Only
+ * =============================================================================
  * Returns only those values whose keys are present in $keys
- *
- * <code>
- * Arr::only(range('a', 'e'), [3, 4]); //=> ['d', 'e']
- * </code>
- *
- * @param array $array
- * @param array $keys
- * @return array
+ * 
+ * 	Only(range('a', 'e'), [3, 4]); //=> ['d', 'e']
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search
+ * $keys - The keys youi want
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function Only($array, $keys)
 {
@@ -392,15 +479,20 @@ function Only($array, $keys)
 }
 
 /**
+ * Function: Except
+ * =============================================================================
  * Returns only those values whose keys are not present in $keys
- *
- * <code>
- * Arr::except(range('a', 'e'), [2, 4]); //=> ['a', 'b', 'd']
- * </code>
- *
- * @param array $array
- * @param array $keys
- * @return array
+ * 
+ * 	Except(range('a', 'e'), [2, 4]); //=> ['a', 'b', 'd']
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search
+ * $keys - The keys you dont want
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function Except($array, $keys)
 {
@@ -408,365 +500,516 @@ function Except($array, $keys)
 }
 
 /**
+ * Function: IndexBy
+ * =============================================================================
  * Re-indexes the array by either results of the callback or a sub-key
- *
- * @param array $array
- * @param callable|string $callbackOrKey
- * @param bool $arrayAccess Whether to use array or object access when given a key name
- * @return array
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to re-index
+ * $callbackOrKey - A string or callable
+ * $arrayAccess - Whether to use array or object access when given a key name
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function IndexBy($array, $callbackOrKey, $arrayAccess = true)
 {
 	$indexed = array();
-
-	if (is_string($callbackOrKey)) {
-		if ($arrayAccess) {
-			foreach ($array as $element) {
+	
+	if (is_string($callbackOrKey))
+	{
+		if ($arrayAccess)
+		{
+			foreach ($array as $element)
+			{
 				$indexed[$element[$callbackOrKey]] = $element;
 			}
-		} else {
-			foreach ($array as $element) {
+		}
+		else
+		{
+			foreach ($array as $element)
+			{
 				$indexed[$element->{$callbackOrKey}] = $element;
 			}
 		}
-	} else {
-		foreach ($array as $element) {
+	}
+	else
+	{
+		foreach ($array as $element)
+		{
 			$indexed[$callbackOrKey($element)] = $element;
 		}
 	}
-
+	
 	return $indexed;
 }
 
 /**
+ * Function: GroupBy
+ * =============================================================================
  * Groups the array into sets key by either results of a callback or a sub-key
- *
- * @param array $array
- * @param callable|string $callbackOrKey
- * @param bool $arrayAccess Whether to use array or object access when given a key name
- * @return array
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to re-index
+ * $callbackOrKey - A string or callable
+ * $arrayAccess - Whether to use array or object access when given a key name
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function GroupBy($array, $callbackOrKey, $arrayAccess = true)
 {
 	$groups = array();
-
-	if (is_string($callbackOrKey)) {
-		if ($arrayAccess) {
-			foreach ($array as $element) {
+	
+	if (is_string($callbackOrKey))
+	{
+		if ($arrayAccess)
+		{
+			foreach ($array as $element)
+			{
 				$groups[$element[$callbackOrKey]][] = $element;
 			}
-		} else {
-			foreach ($array as $element) {
+		}
+		else
+		{
+			foreach ($array as $element)
+			{
 				$groups[$element->{$callbackOrKey}][] = $element;
 			}
 		}
-	} else {
-		foreach ($array as $element) {
+	}
+	else
+	{
+		foreach ($array as $element)
+		{
 			$groups[$callbackOrKey($element)][] = $element;
 		}
 	}
-
+	
 	return $groups;
 }
 
-
-// ----- Assertions -----
-
 /**
+ * Function: All
+ * =============================================================================
  * Returns true if all elements satisfy the given predicate
- *
- * @param $array
- * @param callable $predicate
- * @return bool
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to test
+ * $predicate - A callable to check each value
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * boolean
  */
 function All($array, $predicate)
 {
-	foreach ($array as $key => $value) {
-		if (!$predicate($value, $key)) {
+	foreach ($array as $key => $value)
+	{
+		if (!$predicate($value, $key))
+		{
 			return false;
 		}
 	}
-
+	
 	return true;
 }
 
 /**
+ * Function: Any
+ * =============================================================================
  * Returns true if at least one element satisfies the given predicate
- *
- * @param $array
- * @param callable $predicate
- * @return bool
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to test
+ * $predicate - A callable to check each value
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * boolean
  */
 function Any($array, $predicate)
 {
-	foreach ($array as $key => $value) {
-		if ($predicate($value, $key)) {
+	foreach ($array as $key => $value)
+	{
+		if ($predicate($value, $key))
+		{
 			return true;
 		}
 	}
-
+	
 	return false;
 }
 
 /**
+ * Function: One
+ * =============================================================================
  * Returns true if exactly one element satisfies the given predicate
- *
- * @param $array
- * @param callable $predicate
- * @return bool
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to test
+ * $predicate - A callable to check each value
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * boolean
  */
 function One($array, $predicate)
 {
-	return self::exactly($array, 1, $predicate);
+	return Exactly($array, 1, $predicate);
 }
 
 /**
+ * Function: None
+ * =============================================================================
  * Returns true if none of the elements satisfy $predicate
- *
- * @param array $array
- * @param callable $predicate
- * @return bool
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to test
+ * $predicate - A callable to check each value
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * boolean
  */
 function None($array, $predicate)
 {
-	return self::exactly($array, 0, $predicate);
+	return Exactly($array, 0, $predicate);
 }
 
 /**
+ * Function: Exactly
+ * =============================================================================
  * Returns true if exactly $n elements satisfy the $predicate
- *
- * @param array $array
- * @param int $n
- * @param callable $predicate ($value, $key) -> bool
- * @return bool
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to test
+ * $n - The number of elements to match
+ * $predicate - A callable to check each value
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * boolean
  */
 function Exactly($array, $n, $predicate)
 {
 	$found = 0;
-	foreach ($array as $key => $value) {
-		if ($predicate($value, $key)) {
-			if (++$found > $n) return false;
+	
+	foreach ($array as $key => $value)
+	{
+		if ($predicate($value, $key))
+		{
+			if (++$found > $n)
+			{
+				return false;
+			}
 		}
 	}
-
+	
 	return $found == $n;
 }
 
-
-// ----- Filtering -----
-
 /**
+ * Function: FilterWithKey
+ * =============================================================================
  * Keeps only those elements that satisfy the $predicate
- *
- * Differs from array_filter() in that the key of each element is also passed to the predicate.
- *
- * @param array $array
- * @param callable $predicate ($value, $key) -> bool
- * @return array
+ * Differs from array_filter() in that the key of each element
+ * is also passed to the predicate.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to filter
+ * $predicate - callable($value, $key) -> bool
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function FilterWithKey($array, $predicate)
 {
 	$result = array();
-	foreach ($array as $key => $value) {
-		if ($predicate($value, $key)) $result[$key] = $value;
+	
+	foreach ($array as $key => $value)
+	{
+		if ($predicate($value, $key))
+		{
+			$result[$key] = $value;
+		}
 	}
-
+	
 	return $result;
 }
 
 /**
- * Returns $size random elements from the array or a single element if $size is null
- *
- * This function differs from array_rand() in that it returns an array with a single element if $size is 1.
- *
- * @param array $array
- * @param int|null $size
- * @return array
+ * Function: Sample
+ * =============================================================================
+ * Returns $size random elements from the array or a single element if $size
+ * is null. This function differs from array_rand() in that it returns an array
+ * with a single element if $size is 1.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to filter
+ * $size - How large a sample to you want
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function Sample($array, $size = null)
 {
-	return $size === null
-		? $array[array_rand($array)]
-		: static::only($array, (array)array_rand($array, $size));
+	if ($size === null)
+	{
+		return $array[array_rand($array)];
+	}
+	else
+	{
+		return Only($array, (array)array_rand($array, $size));
+	}
 }
 
-
-// ----- Mapping -----
-
 /**
- * Map the collection into another, applying $callback to each element and its key.
- *
- * This function differs from the built-in array_map() in that it also passes the key as a
- * second element to the callback.
- *
- * <code>
- * Arr::map(['a' => 1, 'b' => 2, 'c' => 3], function ($v) { return $v * 2; });
- * //=> ['a' => 2, 'b' => 4, 'c' => 6]
- * </code>
- *
- * @param array $array
- * @param callable $callback
- * @return array
+ * Function: MapWithKey
+ * =============================================================================
+ * Map the collection into another, applying $callback to each element and its
+ * key. This function differs from the built-in array_map() in that it also
+ * passes the key as a second element to the callback.
+ * 
+ * 	MapWithKey(['a'=>1,'b'=>2,'c'=>3], function($v){return $v * 2;});
+ * 	//=> ['a' => 2, 'b' => 4, 'c' => 6]
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to map
+ * $callback - A callable function
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function MapWithKey($array, $callback)
 {
 	$mapped = array();
-	foreach ($array as $key => $value) {
+	
+	foreach ($array as $key => $value)
+	{
 		$mapped[$key] = $callback($value, $key);
 	}
-
+	
 	return $mapped;
 }
 
 /**
- * Maps an array into another by applying $callback to each element and flattening the results
- *
- * <code>
- * Arr::flatMap(['foo', 'bar baz'], function ($s) { return explode(' ', $s); });
- * //=> ['foo', 'bar', 'baz']
- * </code>
- *
- * @param array $array
- * @param callable $callback ($value, $key) -> array
- * @return array array
+ * Function: FlatMap
+ * =============================================================================
+ * Maps an array into another by applying $callback
+ * to each element and flattening the results.
+ * 
+ * 	FlatMap(['foo', 'bar baz'], function ($s) { return explode(' ', $s); });
+ * 	//=> ['foo', 'bar', 'baz']
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to map
+ * $callback - A callable function
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function FlatMap($array, $callback)
 {
 	$result = array();
-	foreach ($array as $key => $value) {
+	
+	foreach ($array as $key => $value)
+	{
 		$newValues = $callback($value, $key);
-		if ($newValues) {
-			foreach ($newValues as $newValue) {
+		if ($newValues)
+		{
+			foreach ($newValues as $newValue)
+			{
 				$result[] = $newValue;
 			}
 		}
 	}
-
+	
 	return $result;
 }
 
 /**
- * Shortcut method to pick out specified keys/properties from an array of arrays/objects
- *
- * <code>
- * $people = [
- *      ['name' => 'Bob', 'age' => 23],
- *      ['name' => 'Alice', 'age' => 32],
- *      ['name' => 'Frank', 'age' => 40],
- * ];
- *
- * Arr::pluck($people, 'name'); //=> ['Bob', 'Alice', 'Frank']
- * Arr::pluck($people, 'age', 'name'); //=> ['Bob' => 23, 'Alice' => 32, 'Frank' => 40]
- * </code>
- *
- * @param array $array
- * @param string $valueAttribute
- * @param string|null $keyAttribute
- * @param bool $arrayAccess Determines whether to use array access ($elem[$prop]) or property access ($elem->$prop)
- * @return array
+ * Function: Pluck
+ * =============================================================================
+ * Shortcut method to pick out specified keys/properties
+ * from an array of arrays/objects.
+ * 
+ * 	$people =
+ * 	[
+ * 	     ['name' => 'Bob', 'age' => 23],
+ * 	     ['name' => 'Alice', 'age' => 32],
+ * 	     ['name' => 'Frank', 'age' => 40],
+ * 	];
+ * 	
+ * 	Pluck($people, 'name'); //=> ['Bob', 'Alice', 'Frank']
+ * 	Pluck($people, 'age', 'name'); //=> ['Bob' => 23, 'Alice' => 32, 'Frank' => 40]
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array -
+ * $valueAttribute - 
+ * $keyAttribute - 
+ * $arrayAccess - Determines whether to use array access ($elem[$prop]) or property access ($elem->$prop)
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function Pluck($array, $valueAttribute, $keyAttribute = null, $arrayAccess = true)
 {
 	$result = array();
-	if ($arrayAccess) {
-		if ($keyAttribute) {
-			foreach ($array as $value) {
+	
+	if ($arrayAccess)
+	{
+		if ($keyAttribute)
+		{
+			foreach ($array as $value)
+			{
 				$result[$value[$keyAttribute]] = $value[$valueAttribute];
 			}
-		} else {
-			foreach ($array as $key => $value) {
+		}
+		else
+		{
+			foreach ($array as $key => $value)
+			{
 				$result[$key] = $value[$valueAttribute];
 			}
 		}
-	} else {
-		if ($keyAttribute) {
-			foreach ($array as $value) {
+	}
+	else
+	{
+		if ($keyAttribute)
+		{
+			foreach ($array as $value)
+			{
 				$result[$value->{$keyAttribute}] = $value->{$valueAttribute};
 			}
-		} else {
-			foreach ($array as $key => $value) {
+		}
+		else
+		{
+			foreach ($array as $key => $value)
+			{
 				$result[$key] = $value->{$valueAttribute};
 			}
 		}
 	}
-
+	
 	return $result;
 }
 
 /**
- * Creates an associative array by invoking $callback on each element and using the 2 resulting values as key and value
- *
- * <code>
- * $friends = [['name' => 'Bob', 'surname' => 'Hope', 'age' => 34], ['name' => 'Alice', 'surname' => 'Miller', 'age' => 23]];
- * Arr::mapToAssoc($friends, function ($v, $k) { return [$v['name'].' '.$v['surname'], $v['age']] });
- * //=> ['Bob Hope' => 34, 'Alice Miller' => 23]
- * </code>
- *
- * @param array $array
- * @param callable $callback ($value, $key) -> array($newKey, $newValue)
- * @return array
+ * Function: MapToAssoc
+ * =============================================================================
+ * Creates an associative array by invoking $callback on each element and
+ * using the 2 resulting values as key and value.
+ * 
+ * 	$friends = [['name' => 'Bob', 'surname' => 'Hope', 'age' => 34], ['name' => 'Alice', 'surname' => 'Miller', 'age' => 23]];
+ * 	MapToAssoc($friends, function ($v, $k) { return [$v['name'].' '.$v['surname'], $v['age']] });
+ * 	//=> ['Bob Hope' => 34, 'Alice Miller' => 23]
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array -
+ * $callback - callable($value, $key) -> array($newKey, $newValue)
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function MapToAssoc($array, $callback)
 {
 	$mapped = array();
-	foreach ($array as $key => $value) {
+	
+	foreach ($array as $key => $value)
+	{
 		list($newKey, $newValue) = $callback($value, $key);
 		$mapped[$newKey] = $newValue;
 	}
-
+	
 	return $mapped;
 }
 
 /**
- * Flattens the array, combining elements of all sub-arrays into one array
- *
- * <code>
- * Arr::flatten([[1, 2, 3], [4, 5]]); //=> [1, 2, 3, 4, 5]
- * </code>
- *
- * @param array $array
- * @return array
+ * Function: Flatten
+ * =============================================================================
+ * Flattens the array, combining elements of all sub-arrays into one array.
+ * 
+ * 	Flatten([[1, 2, 3], [4, 5]]); //=> [1, 2, 3, 4, 5]
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to flatten
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function Flatten($array)
 {
 	return call_user_func_array('array_merge', $array);
 }
 
-
-// ----- Folding and reduction -----
-
 /**
- * Reduces the array into a single value by calling $callback repeatedly on the elements and their keys, passing the resulting value along each time.
- *
- * <code>
- * Arr::foldRight(['foo', 'bar', 'baz'], function ($res, $v, $k) { return "$res $k:$e"; }); //=> ' 0:foo 1:bar 2:baz'
- * </code>
- *
- * @param array $array
- * @param callable $callback ($accumulator, $value, $key) -> mixed
- * @param mixed $initial
- * @return mixed
+ * Function: FoldWithKey
+ * =============================================================================
+ * Reduces the array into a single value by calling $callback repeatedly
+ * on the elements and their keys, passing the resulting value along each time.
+ * 
+ * FoldWithKey(['foo', 'bar', 'baz'], function ($res, $v, $k) { return "$res $k:$e"; }); //=> ' 0:foo 1:bar 2:baz'
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array -
+ * $callback -  callable($accumulator, $value, $key) -> mixed
+ * $intial - 
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function FoldWithKey($array, $callback, $initial = null)
 {
-	foreach ($array as $key => $value) {
+	foreach ($array as $key => $value)
+	{
 		$initial = $callback($initial, $value, $key);
 	}
-
+	
 	return $initial;
 }
 
 /**
+ * Function: FoldRight
+ * =============================================================================
  * Right-associative version of array_reduce().
- *
- * <code>
- * Arr::foldRight(['foo', 'bar', 'baz'], function ($res, $e) { return $res . $e; }); //=> 'bazbarfoo'
- * </code>
- *
- * @param array $array
- * @param callable $callback ($accumulator, $value, $key) -> mixed
- * @param mixed $initial
- * @return mixed
+ * 
+ * 	FoldRight(['foo', 'bar', 'baz'], function ($res, $e) { return $res . $e; }); //=> 'bazbarfoo'
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array -
+ * $callback - callable($accumulator, $value, $key) -> mixed
+ * $initial - 
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function FoldRight($array, $callback, $initial = null)
 {
@@ -774,144 +1017,169 @@ function FoldRight($array, $callback, $initial = null)
 }
 
 /**
- * Right-associative version of foldWithKey()
- *
- * <code>
- * Arr::foldRight(['foo', 'bar', 'baz'], function ($res, $v, $k) { return "$res $v:$k"; }); //=> ' 2:baz 1:bar 0:foo'
- * </code>
- *
- * @param array $array
- * @param callable $callback ($accumulator, $value, $key) -> mixed
- * @param mixed $initial
- * @return mixed
+ * Function: FoldRightWithKey
+ * =============================================================================
+ * Right-associative version of FoldWithKey()
+ * 
+ * 	FoldRightWithKey(['foo', 'bar', 'baz'], function ($res, $v, $k) { return "$res $v:$k"; }); //=> ' 2:baz 1:bar 0:foo'
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array -
+ * $callback -  callable($accumulator, $value, $key) -> mixed
+ * $intial - 
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function FoldRightWithKey($array, $callback, $initial = null)
 {
-	return self::foldWithKey(array_reverse($array, true), $callback, $initial);
+	return FoldWithKey(array_reverse($array, true), $callback, $initial);
 }
 
 /**
+ * Function: MinBy
+ * =============================================================================
  * Finds the smallest element by result of $callback
- *
- * <code>
- * Arr::minBy(['tasty', 'big', 'cheeseburgers'], 'mb_strlen'); //=> 'big'
- * </code>
- *
- * @param array $array
- * @param callable $callback ($value, $key) -> number|string
- * @return mixed
+ * 
+ * 	MinBy(['tasty', 'big', 'cheeseburgers'], 'mb_strlen'); //=> 'big'
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array -
+ * $callback - callable($value, $key) -> number|string
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function MinBy($array, $callback)
 {
 	$minResult = null;
 	$minElement = null;
-	foreach ($array as $element) {
+	
+	foreach ($array as $element)
+	{
 		$current = $callback($element);
-		if (!isset($minResult) || $current < $minResult) {
+		if (!isset($minResult) || $current < $minResult)
+		{
 			$minResult = $current;
 			$minElement = $element;
 		}
 	}
-
+	
 	return $minElement;
 }
 
 /**
+ * Function: MaxBy
+ * =============================================================================
  * Finds the largest element by result of $callback
- *
- * <code>
- * Arr::maxBy(['tasty', 'big', 'cheeseburgers'], 'mb_strlen'); //=> 'cheeseburgers'
- * </code>
- *
- * @param array $array
- * @param callable $callback ($value, $key) -> number|string
- * @return mixed
+ * 
+ * 	MaxBy(['tasty', 'big', 'cheeseburgers'], 'mb_strlen'); //=> 'cheeseburgers'
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array -
+ * $callback - callable($value, $key) -> number|string
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
  */
 function MaxBy($array, $callback)
 {
 	$maxResult = null;
 	$maxElement = null;
-	foreach ($array as $element) {
+	
+	foreach ($array as $element)
+	{
 		$current = $callback($element);
-		if (!isset($maxResult) || $current > $maxResult) {
+		if (!isset($maxResult) || $current > $maxResult)
+		{
 			$maxResult = $current;
 			$maxElement = $element;
 		}
 	}
-
+	
 	return $maxElement;
 }
 
 /**
+ * Function: SumBy
+ * =============================================================================
  * Returns the sum of all elements passed through $callback
- *
- * <code>
- * Arr::sumBy(['tasty', 'big', 'cheeseburgers'], 'mb_strlen'); // => 21
- * </code>
- *
- * @param array $array
- * @param callable $callback ($value, $key) -> number
- * @return number
+ * 
+ * 	SumBy(['tasty', 'big', 'cheeseburgers'], 'mb_strlen'); // => 21
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array -
+ * $callback - callable($value, $key) -> number
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * int
  */
 function SumBy($array, $callback)
 {
 	$sum = 0;
-	foreach ($array as $value) {
+	
+	foreach ($array as $value)
+	{
 		$sum += $callback($value);
 	}
-
+	
 	return $sum;
 }
 
-
-// ----- Splitting -----
-
 /**
- * Returns two arrays: one with elements that satisfy the predicate, the other with elements that don't
- *
- * @param array $array
- * @param callable $predicate
- * @return array
+ * Function: Partition
+ * =============================================================================
+ * Returns two arrays: one with elements that satisfy the predicate,
+ * the other with elements that don't
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - 
+ * $predicate - 
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function Partition($array, $predicate)
 {
 	$pass = array();
 	$fail = array();
-
-	foreach ($array as $key => $value) {
+	
+	foreach ($array as $key => $value)
+	{
 		$predicate($value, $key)
 			? $pass[$key] = $value
 			: $fail[$key] = $value;
 	}
-
+	
 	return array($pass, $fail);
 }
 
 /**
- * @param array $array
- * @param int $size
- * @param int $step
- * @return GroupedIterator
- */
-function Sliding($array, $size, $step = 1)
-{
-	return new GroupedIterator($array, $size, $step);
-}
-
-
-// ----- Zipping -----
-
-/**
- * Zips together two or more arrays
-
- * <code>
- * Arr::zip(range(1, 5), range('a', 'e'), [5, 4, 3, 2, 1]);
- * //=> [[1, a, 5], [2, b, 4], [3, c, 3], [4, d, 2], [5, e, 1]]
- * </code>
- *
- * @param array $array1
- * @param array $array2
- * @return array
+ * Function: Zip
+ * =============================================================================
+ * Zips together two or more arrays.
+ * 
+ * 	Zip(range(1, 5), range('a', 'e'), [5, 4, 3, 2, 1]);
+ * 	//=> [[1, a, 5], [2, b, 4], [3, c, 3], [4, d, 2], [5, e, 1]]
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array1 -
+ * $array2 - 
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function Zip($array1, $array2)
 {
@@ -921,47 +1189,68 @@ function Zip($array1, $array2)
 }
 
 /**
- * @param array $array1
- * @param array $array2
- * @param callable $callback
- * @return array
+ * Function: ZipWith
+ * =============================================================================
+ * 
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array1 -
+ * $array2 - 
+ * $callback - 
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function ZipWith($array1, $array2, $callback)
 {
 	$result = array();
-	foreach ($array1 as $a) {
+	
+	foreach ($array1 as $a)
+	{
 		list(,$b) = each($array2);
 		$result[] = $callback($a, $b);
 	}
-
+	
 	return $result;
 }
 
-
-// ----- Sorting -----
-
 /**
+ * Function: SortBy
+ * =============================================================================
  * Returns a copy of the array, sorted by a key or result of a callback
- *
- * @param array $array
- * @param callable|string $callbackOrKey
- * @param int $mode Sort flags
- * @return array
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array -
+ * $callbackOrKey - 
+ * $mode - 
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
 function SortBy($array, $callbackOrKey, $mode = SORT_REGULAR)
 {
 	$sortBy = array();
-	if (is_string($callbackOrKey)) {
-		foreach ($array as $value) {
+	
+	if (is_string($callbackOrKey))
+	{
+		foreach ($array as $value)
+		{
 			$sortBy[] = $value[$callbackOrKey];
 		}
-	} else {
-		foreach ($array as $key => $value) {
+	}
+	else
+	{
+		foreach ($array as $key => $value)
+		{
 			$sortBy[] = $callbackOrKey($value, $key);
 		}
 	}
-
+	
 	array_multisort($sortBy, $mode, $array);
-
+	
 	return $array;
 }
