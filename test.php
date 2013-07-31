@@ -1,6 +1,7 @@
 <?php
 
 require('Functions.php');
+require('Object.php');
 
 $array =
 [
@@ -25,4 +26,9 @@ $array =
 	]
 ];
 
-Gears\Arrays\Debug(Gears\Arrays\Search($array, '12', false));
+$obj = new Gears\Arrays\Object($array);
+
+foreach ($obj as $key => $val)
+{
+	echo $key;
+}

@@ -11,3 +11,8 @@ Installation via composer is easy:
 How to Use
 --------------------------------------------------------------------------------
 Comming Soon...
+
+
+Credits
+--------------------------------------------------------------------------------
+https://github.com/axelarge/php-array-tools

@@ -46,6 +46,64 @@ function Debug($array)
 }
 
 /**
+ * Function: ToString
+ * =============================================================================
+ * Returns an easily readable string representation of a nested array structure.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to turnh into a string
+ * $showKeys - Whether to output array keys. Skip to handle intelligently
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * string
+ */
+function ToString($array, $showKeys = null)
+{
+	// Set a counter
+	$idx = 0;
+	
+	// Remap the array
+	$remapped = MapWithKey($array, function ($v, $k) use (&$idx, $showKeys)
+	{
+		if ($showKeys === null && $idx++ === $k || $showKeys === false)
+		{
+			$str = '';
+		}
+		else
+		{
+			$str = "$k => ";
+		}
+		
+		if (is_array($v))
+		{
+			$str .= ToString($v, $showKeys);
+		}
+		else if (is_object($v))
+		{
+			if (is_callable($v, '__toString'))
+			{
+				$str .= (string)$v;
+			}
+			else
+			{
+				$str .= get_class($v);
+			}
+		}
+		else
+		{
+			$str .= (string)$v;
+		}
+		
+		return $str;
+	});
+	
+	// Return a string representation
+	return sprintf('[%s]', implode(', ', $remapped));
+}
+
+/**
  * Function: Search
  * =============================================================================
  * This will search an array recursively for your search terms.
@@ -1181,7 +1239,7 @@ function Partition($array, $predicate)
  * -----------------------------------------------------------------------------
  * array
  */
-function Zip($array1, $array2)
+function Zip()
 {
 	$args = func_get_args();
 	array_unshift($args, null);
