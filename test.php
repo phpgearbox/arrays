@@ -28,7 +28,14 @@ $array =
 
 $obj = new Gears\Arrays\Object($array);
 
-foreach ($obj as $key => $val)
+foreach ($obj as $key => $value)
 {
-	echo $key;
+	echo $key.$value;
 }
+
+/*
+$obj->Each(function($key, $value)
+{
+	echo $value;
+});
+*/
