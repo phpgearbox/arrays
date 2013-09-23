@@ -16,13 +16,6 @@ namespace Gears\Arrays;
 class Object implements \ArrayAccess, \Iterator, \Countable
 {
 	/**
-	 * Property: $position
-	 * =========================================================================
-	 * Used to provide the Iterator Interface
-	 */
-	private $position = 0;
-	
-	/**
 	 * Property: $value
 	 * =========================================================================
 	 * This stores the actual array that this object represents.
@@ -48,6 +41,26 @@ class Object implements \ArrayAccess, \Iterator, \Countable
 	}
 	
 	/**
+	 * Method: F
+	 * =========================================================================
+	 * This is the static factory method allowing a syntax like this:
+	 * 
+	 * 	Gears\Arrays\Object::F($array)->Each(function($k, $v){ echo $k.$v; });
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $array - A PHP array to turn into a Gears\Arrays\Object
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * A new instance of Gears\Arrays\Object
+	 */
+	public static function F($array)
+	{
+		return new self($array);
+	}
+	
+	/**
 	 * Method: count
 	 * =========================================================================
 	 * Provides the Countable Implementation
@@ -65,29 +78,97 @@ class Object implements \ArrayAccess, \Iterator, \Countable
 		return count($this->value);
 	}
 	
-	function rewind()
+	/**
+	 * Method: rewind
+	 * =========================================================================
+	 * Provides the Iterator Implementation
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * int
+	 */
+	public function rewind()
 	{
-		$this->position = 0;
+		return reset($this->value);
 	}
 	
-	function current()
+	/**
+	 * Method: current
+	 * =========================================================================
+	 * Provides the Iterator Implementation
+	 * 
+	 * THIS IS KEY - We return a new instance of Gears\Arrays\Object
+	 * if the value is another array.
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * int
+	 */
+	public function current()
 	{
-		return $this->value[$this->position];
+		return $this->ReturnSelf(current($this->value));
 	}
 	
-	function key()
+	/**
+	 * Method: key
+	 * =========================================================================
+	 * Provides the Iterator Implementation
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * int
+	 */
+	public function key()
 	{
-		return $this->position;
+		return key($this->value);
 	}
 	
-	function next()
+	/**
+	 * Method: next
+	 * =========================================================================
+	 * Provides the Iterator Implementation
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * int
+	 */
+	public function next()
 	{
-		++$this->position;
+		return next($this->value);
 	}
 	
-	function valid()
+	/**
+	 * Method: valid
+	 * =========================================================================
+	 * Provides the Iterator Implementation
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * int
+	 */
+	public function valid()
 	{
-		return isset($this->value[$this->position]);
+		return key($this->value) !== null;
 	}
 	
 	/**
@@ -164,6 +245,33 @@ class Object implements \ArrayAccess, \Iterator, \Countable
 	}
 	
 	/**
+	 * Method: ReturnSelf
+	 * =========================================================================
+	 * Used internally to return a new instance of our self
+	 * thus providing a recursive interface.
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $value - The value to check if it is an array or not
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * A new instance of Gears\Arrays\Object if $value is an array.
+	 * Otherwise we just pass on $value untouched.
+	 */
+	private function ReturnSelf($value)
+	{
+		if (is_array($value))
+		{
+			return new self($value);
+		}
+		else
+		{
+			return $value;
+		}
+	}
+	
+	/**
 	 * Method: __toString
 	 * =========================================================================
 	 * Magic method to turn Gears\Arrays\Object into an easily readable
@@ -219,48 +327,158 @@ class Object implements \ArrayAccess, \Iterator, \Countable
 	}
 	
 	/**
-	 * Function: ReturnSelf
+	 * Method: First
 	 * =========================================================================
-	 * Used internally to return a new instance of our self
-	 * thus providing a recursive interface.
+	 * Grab the first element of the array
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $value - The value to check if it is an array or not
+	 * n/a
 	 * 
 	 * Returns:
 	 * -------------------------------------------------------------------------
-	 * A new instance of Gears\Arrays\Object if $value is an array.
-	 * Otherwise we just pass on $value untouched.
+	 * mixed
 	 */
-	private function ReturnSelf($value)
+	public function First()
 	{
-		if (is_array($value))
-		{
-			return new self($value);
-		}
-		else
-		{
-			return $value;
-		}
+		return $this->rewind();
 	}
 	
+	/**
+	 * Method: Last
+	 * =========================================================================
+	 * Grab the last element of the array
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * mixed
+	 */
+	public function Last()
+	{
+		return end($this->value);
+	}
+	
+	/**
+	 * Method: Each
+	 * =========================================================================
+	 * This allows you to do something like this:
+	 * 
+	 * 	$obj = new Gears\Arrays\Object($array);
+	 * 	$obj->Each(function($key, $value, $index)
+	 * 	{
+	 * 		echo 'KEY: '.$key."\n";
+	 * 		echo 'VALUE: '.$value."\n";
+	 * 		echo 'INDEX: '.$index."\n";
+	 * 	});
+	 * 
+	 * The key and value or self explanatory, the index is totally optional.
+	 * In fact you don't have to use any of the paranmeters in your callback
+	 * if you don't want to.
+	 * 
+	 * I digress the index is simply a counter starting at zero increasing by
+	 * 1 for each interation. With a simple "not-named keys" array you already
+	 * have this value as the key. But with "named keys" you miss out on this.
+	 * Sometimes I find myself doing things like this:
+	 * 
+	 * 	$index = 0;
+	 * 	
+	 * 	foreach ($array as $key => $value)
+	 * 	{
+	 * 		// We only want to do 10 of these
+	 * 		if ($index > 10) break;
+	 * 		
+	 * 		// Do something with key and value
+	 * 		echo 'KEY: '.$key."\n";
+	 * 		echo 'VALUE: '.$value."\n";
+	 * 		
+	 * 		// Increase the index
+	 * 		$index++;
+	 * 	}
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $callback - callable($key, $value, $index);
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * self
+	 */
 	public function Each($callback)
 	{
 		$index = 0;
 		
 		foreach ($this->value as $key => $value)
 		{
-			$callback($key, $value, $index++);
+			$callback($key, $this->ReturnSelf($value), $index++);
 		}
 		
 		return $this;
 	}
 	
+	/**
+	 * Method: Hook
+	 * =========================================================================
+	 * Invokes a callback passing the underlying array as the argument,
+	 * ignoring the return value. Useful for debugging in the middle of a chain.
+	 * Can also be used to modify the object, although doing so is discouraged.
+	 * 
+	 * For example:
+	 * 
+	 * 	$obj = new Gears\Arrays\Object($array);
+	 * 	$obj
+	 * 		->Filter(function ($v) { return $v % 2 != 0; })
+	 * 		->Hook(function ($arr) { array_unshift($arr, 0); }) // Add back zero
+	 * 		->Map(function ($v) { return $v * $v; })
+	 * 		->Hook(function ($arr) { var_dump($arr); }) // Debug
+	 * 		->Sum()
+	 * 	;
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $callback - callable($array);
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * self
+	 */
+	public function Hook($callback)
+	{
+		$callback($this->value);
+		return $this;
+	}
+	
+	/**
+	 * Method: Debug
+	 * =========================================================================
+	 * If you specfically want to dump the contents of the array just call this
+	 * instead of the hook method. This will work out if your working on
+	 * the command line or in a web browser and format the output
+	 * apprioratly so that it is easily readable.
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * self
+	 */
 	public function Debug()
 	{
-		return $this->ReturnSelf(\Gears\Arrays\Debug($this->value));
+		\Gears\Arrays\Debug($this->value);
+		return $this;
 	}
+	
+	/*
+	 * Below here are all the aliased methods contained in the Functions.php
+	 * file. So go look in there for documentation. The only real difference
+	 * is that while in the procudual API the first argument will always
+	 * be an array, when using this object you obviously omit that.
+	 */
 	
 	public function Search($search, $exact = true, $trav_keys = null)
 	{

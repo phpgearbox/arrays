@@ -2,6 +2,8 @@
 
 require('Functions.php');
 require('Object.php');
+require('Conversions/Template.php');
+require('Conversions/From/Csv.php');
 
 $array =
 [
@@ -28,14 +30,15 @@ $array =
 
 $obj = new Gears\Arrays\Object($array);
 
-foreach ($obj as $key => $value)
+$obj->Each(function()
 {
-	echo $key.$value;
-}
-
-/*
-$obj->Each(function($key, $value)
-{
-	echo $value;
+	echo 'array';
 });
-*/
+
+
+echo count(Gears\Arrays\Object::F($array));
+
+
+$convertor = new Gears\Arrays\Conversions\From\Csv();
+$array = $convertor->Convert("abc, xyz\n123, 456\ntest, test2\n");
+print_r($array);
