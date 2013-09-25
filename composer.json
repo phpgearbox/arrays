@@ -2,7 +2,7 @@
 	"name": "gears/arrays",
 	"description": "A collection of array conversions and manipulators.",
 	"homepage": "https://github.com/phpgearbox/array",
-	"keywords": ["string", "manipulation"],
+	"keywords": ["array", "manipulation"],
 	"license": "MIT",
 	"require":
 	{

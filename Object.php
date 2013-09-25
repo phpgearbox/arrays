@@ -451,6 +451,11 @@ class Object implements \ArrayAccess, \Iterator, \Countable
 		return $this;
 	}
 	
+	public function Convert()
+	{
+		
+	}
+	
 	/**
 	 * Method: Debug
 	 * =========================================================================
