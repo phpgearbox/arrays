@@ -1,98 +1,74 @@
 <?php
 ////////////////////////////////////////////////////////////////////////////////
-//             __         ___________            __ __________              
-//     ______ |  |__ _____\__    ___/___   ____ |  |\______   \ _______  ___
-//     \____ \|  |  \\____ \|    | /  _ \ /  _ \|  | |    |  _//  _ \  \/  /
-//     |  |_> >   Y  \  |_> >    |(  <_> |  <_> )  |_|    |   (  <_> >    < 
-//     |   __/|___|  /   __/|____| \____/ \____/|____/______  /\____/__/\_ \
-//     |__|        \/|__|                                   \/            \/
+// __________ __             ________                   __________              
+// \______   \  |__ ______  /  _____/  ____ _____ ______\______   \ _______  ___
+//  |     ___/  |  \\____ \/   \  ____/ __ \\__  \\_  __ \    |  _//  _ \  \/  /
+//  |    |   |   Y  \  |_> >    \_\  \  ___/ / __ \|  | \/    |   (  <_> >    < 
+//  |____|   |___|  /   __/ \______  /\___  >____  /__|  |______  /\____/__/\_ \
+//                \/|__|           \/     \/     \/             \/            \/
 // =============================================================================
-//       Designed and Developed by Brad Jones <bradj @="hugonet.com.au" />      
+//         Designed and Developed by Brad Jones <bj @="gravit.com.au" />        
 // =============================================================================
-// 
-// >>> $Id: Table.php 492 2009-12-09 06:34:16Z bradj $
-// 
 ////////////////////////////////////////////////////////////////////////////////
 
-class BTB_Array_Driver_From_Table extends BTB_Array_Driver
+namespace Gears\Arrays\Conversions\From;
+
+class Table extends \Gears\Arrays\Conversions\Template
 {
-	/*
-	 * PROPERTY: table_location
-	 * -------------------------------------------------------------------------
+	/**
+	 * Property: table_location
+	 * =========================================================================
 	 * This is either a CSS or Xpath Query to give the location of the
 	 * HTML Table you would like to convert toi an array.
 	 */
-	private $table_location;
-	public function set_table_location($value) { $this->table_location = $value; return $this; }
+	protected $table_location;
 	
-	/*
-	 * PROPERTY: table_headings
-	 * -------------------------------------------------------------------------
+	/**
+	 * Property: table_headings
+	 * =========================================================================
 	 * Do you want to treat the first row of the table as the headings
 	 * for each column.
 	 */
-	private $table_headings = true;
-	public function set_table_headings($value) { $this->table_headings = $value; return $this; }
+	protected $table_headings = true;
 	
-	/*
-	 * PROPERTY: query_type
-	 * -------------------------------------------------------------------------
+	/**
+	 * Property: query_type
+	 * =========================================================================
 	 * This will take either css or xpath
 	 */
-	private $query_type = 'css';
-	public function set_query_type($value) { $this->query_type = $value; return $this; }
+	protected $query_type = 'css';
 	
-	/*
-	 * METHOD: __construct
-	 * -------------------------------------------------------------------------
-	 * This will set any properties defined in the constructor
-	 * 
-	 * Parameters:
-	 * 	$table_location - As Above
-	 * 	$table_headings - As Above
-	 * 	$query_type - As Above
-	 * 
-	 * Returns:
-	 * 	void
-	 */
-	public function __construct($table_location = null, $table_headings = null, $query_type = null)
-	{
-		// Set our properties, note we dont have to set the properties here.
-		// We can you the "set_" methods if desired.
-		if ($table_location !== null) $this->table_location = $table_location;
-		if ($table_headings !== null) $this->table_headings = $table_headings;
-		if ($query_type !== null) $this->query_type = $query_type;
-	}
-	
-	/*
-	 * METHOD: Convert
-	 * -------------------------------------------------------------------------
+	/**
+	 * Method: Convert
+	 * =========================================================================
 	 * This will do the actual converting
 	 * 
 	 * Parameters:
-	 * 	$data - The HTML string that contains the table to convert to an array.
+	 * -------------------------------------------------------------------------
+	 * $data - The HTML string that contains the table to convert to an array.
 	 * 
 	 * Returns:
-	 * 	array
+	 * -------------------------------------------------------------------------
+	 * array
 	 */
 	public function Convert($data)
 	{
 		// First of all lets do some simple string manipulation
-		$data = str_replace(array('<thead>', '</thead>', '<tbody>', '</tbody>', '<tfoot>', '</tfoot>'), '', $data);
-		$data = str_replace(array('<th', '</th'), array('<tr', '</tr'), $data);
+		$data = str_replace(['<thead>', '</thead>', '<tbody>', '</tbody>', '<tfoot>', '</tfoot>'], '', $data);
+		$data = str_replace(['<th', '</th'], ['<tr', '</tr'], $data);
 		
 		// Create a new dom object
-		$dom = new Zend_Dom_Query($data);
+		$dom = new \Zend\Dom\Query($data);
 		
 		// Find the table within the document
 		switch ($this->query_type)
 		{
-			case 'css': $table = $dom->query($this->table_location); break;
+			case 'css': $table = $dom->execute($this->table_location); break;
 			case 'xpath': $table = $dom->queryXpath($this->table_location); break;
 		}
 		
 		// Convert the table node into an array
-		$array = new BTB_Array_Driver_From_Dom();
+		$array = new \Gears\Arrays\Conversions\From\Dom();
 		$dom_array = $array->Convert($table->current());
 		
 		// Then tidy up that array

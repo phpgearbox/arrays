@@ -4,7 +4,12 @@
 	"homepage": "https://github.com/phpgearbox/array",
 	"keywords": ["string", "manipulation"],
 	"license": "MIT",
-	"require": { "php": ">=5.3" },
+	"require":
+	{
+		"php": ">=5.3",
+		"zendframework/zend-dom": "2.2.x",
+		"zendframework/zend-json": "2.2.x"
+	},
 	"autoload":
 	{
 		"psr-0": { "Gears\\Arrays\\": "" },

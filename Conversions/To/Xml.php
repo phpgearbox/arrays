@@ -1,57 +1,39 @@
 <?php
 ////////////////////////////////////////////////////////////////////////////////
-//             __         ___________            __ __________              
-//     ______ |  |__ _____\__    ___/___   ____ |  |\______   \ _______  ___
-//     \____ \|  |  \\____ \|    | /  _ \ /  _ \|  | |    |  _//  _ \  \/  /
-//     |  |_> >   Y  \  |_> >    |(  <_> |  <_> )  |_|    |   (  <_> >    < 
-//     |   __/|___|  /   __/|____| \____/ \____/|____/______  /\____/__/\_ \
-//     |__|        \/|__|                                   \/            \/
+// __________ __             ________                   __________              
+// \______   \  |__ ______  /  _____/  ____ _____ ______\______   \ _______  ___
+//  |     ___/  |  \\____ \/   \  ____/ __ \\__  \\_  __ \    |  _//  _ \  \/  /
+//  |    |   |   Y  \  |_> >    \_\  \  ___/ / __ \|  | \/    |   (  <_> >    < 
+//  |____|   |___|  /   __/ \______  /\___  >____  /__|  |______  /\____/__/\_ \
+//                \/|__|           \/     \/     \/             \/            \/
 // =============================================================================
-//       Designed and Developed by Brad Jones <bradj @="hugonet.com.au" />      
+//         Designed and Developed by Brad Jones <bj @="gravit.com.au" />        
 // =============================================================================
-// 
-// >>> $Id: Xml.php 492 2009-12-09 06:34:16Z bradj $
-// 
 ////////////////////////////////////////////////////////////////////////////////
 
-class BTB_Array_Driver_To_Xml extends BTB_Array_Driver
+namespace Gears\Arrays\Conversions\To;
+
+class Xml extends \Gears\Arrays\Conversions\Template
 {
-	/*
-	 * PROPERTY: indent
-	 * -------------------------------------------------------------------------
+	/**
+	 * Property: indent
+	 * =========================================================================
 	 * Do we want to have the XML formated so it is readable.
 	 */
-	private $indent = false;
-	public function set_indent($value) { $this->indent = $value; return $this; }
+	protected $indent = false;
 	
-	/*
-	 * METHOD: __construct
-	 * -------------------------------------------------------------------------
-	 * This will set any properties defined in the constructor
-	 * 
-	 * Parameters:
-	 * 	$indent - As Above
-	 * 
-	 * Returns:
-	 * 	void
-	 */
-	public function __construct($indent = null)
-	{
-		// Set our properties, note we dont have to set the properties here.
-		// We can you the "set_" methods if desired.
-		if ($indent !== null) $this->indent = $indent;
-	}
-	
-	/*
-	 * METHOD: Convert
-	 * -------------------------------------------------------------------------
+	/**
+	 * Method: Convert
+	 * =========================================================================
 	 * This will do the actual converting
 	 * 
 	 * Parameters:
-	 * 	$data - An array to convert to XML
+	 * -------------------------------------------------------------------------
+	 * $data - An array to convert to XML
 	 * 
 	 * Returns:
-	 * 	xml
+	 * -------------------------------------------------------------------------
+	 * xml
 	 */
 	public function Convert($data)
 	{
@@ -71,18 +53,20 @@ class BTB_Array_Driver_To_Xml extends BTB_Array_Driver
 		return $xml->outputMemory(true);
 	}
 	
-	/*
-	 * METHOD: RecursXML
-	 * -------------------------------------------------------------------------
+	/**
+	 * Method: RecursXML
+	 * =========================================================================
 	 * This is the resursive function that will convert the each node of the
 	 * array to xml.
 	 * 
 	 * Parameters:
-	 * 	$xml - The XMLWriter Instance
-	 * 	$data - The array to convert
+	 * -------------------------------------------------------------------------
+	 * $xml - The XMLWriter Instance
+	 * $data - The array to convert
 	 * 
 	 * Returns:
-	 * 	xml
+	 * -------------------------------------------------------------------------
+	 * xml
 	 */
 	private function RecursXML(XMLWriter $xml, $data)
 	{

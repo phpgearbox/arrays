@@ -13,8 +13,32 @@
 
 namespace Gears\Arrays\Conversions;
 
-interface Template
+abstract class Template
 {
+	/**
+	 * Method: __construct
+	 * =========================================================================
+	 * This will set any properties defined in the constructor
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $options - An array of values, with keys the same as the properties above
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	public function __construct($options = array())
+	{
+		foreach ($options as $key => $value)
+		{
+			if (isset($this->{$key}))
+			{
+				$this->{$key} = $value;
+			}
+		}
+	}
+	
 	/**
 	 * Method: Convert
 	 * =========================================================================
@@ -28,5 +52,5 @@ interface Template
 	 * -------------------------------------------------------------------------
 	 * mixed
 	 */
-	public function Convert($data);
+	abstract public function Convert($data);
 }

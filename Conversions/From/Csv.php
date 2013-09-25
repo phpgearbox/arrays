@@ -13,21 +13,21 @@
 
 namespace Gears\Arrays\Conversions\From;
 
-class Csv implements \Gears\Arrays\Conversions\Template
+class Csv extends \Gears\Arrays\Conversions\Template
 {
 	/**
 	 * Property: delimiter
-	 * -------------------------------------------------------------------------
+	 * =========================================================================
 	 * This is the delimiter or seperator that is used in the CSV.
 	 * For example you could actually turn this into a TSV Driver by using "\t"
 	 * 
 	 * Defaults to ,
 	 */
-	private $delimiter = ',';
+	protected $delimiter = ',';
 	
 	/**
 	 * Property: enclosure
-	 * -------------------------------------------------------------------------
+	 * =========================================================================
 	 * This is the character that is used to enclose or surround the values.
 	 * Eg:
 	 * 	row1, abc, 123			(WITHOUT ENCLOSURE)
@@ -35,21 +35,21 @@ class Csv implements \Gears\Arrays\Conversions\Template
 	 * 
 	 * Defaults to " 
 	 */
-	private $enclosure = '"';
+	protected $enclosure = '"';
 	
 	/**
 	 * Property: memory
-	 * -------------------------------------------------------------------------
+	 * =========================================================================
 	 * This is the amount of memory that we will take up to create a
 	 * file pointer to a temporay place in main memory.
 	 * 
 	 * Defaults to 5MB
 	 */
-	private $memory = 5;
+	protected $memory = 5;
 	
 	/**
 	 * Property: length
-	 * -------------------------------------------------------------------------
+	 * =========================================================================
 	 * Must be greater than the longest line (in characters) to be found in the
 	 * CSV (allowing for trailing line-end characters). It became optional in
 	 * PHP 5 and setting it to 0 will let PHP work it out for you.
@@ -57,41 +57,17 @@ class Csv implements \Gears\Arrays\Conversions\Template
 	 * 
 	 * Defaults to 0
 	 */
-	private $length = 0;
+	protected $length = 0;
 	
 	/**
 	 * Property: headings
-	 * -------------------------------------------------------------------------
+	 * =========================================================================
 	 * Do we treat the first row in the CSV as headings for our array.
 	 * Or do we just output a number indexed array.
 	 * 
 	 * Defaults to true
 	 */
-	private $headings = true;
-	
-	/**
-	 * Method: __construct
-	 * =========================================================================
-	 * This will set any properties defined in the constructor
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $options - An array of values, with keys the same as the properties above
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * void
-	 */
-	public function __construct($options)
-	{
-		foreach ($options as $key => $value)
-		{
-			if (isset($this->{$key}))
-			{
-				$this->{$key} = $value;
-			}
-		}
-	}
+	protected $headings = true;
 	
 	/**
 	 * Method: Convert

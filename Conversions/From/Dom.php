@@ -13,35 +13,39 @@
 
 namespace Gears\Arrays\Conversions\From;
 
-class BTB_Array_Driver_From_Dom extends BTB_Array_Driver
+class Dom extends \Gears\Arrays\Conversions\Template
 {
-	/*
-	 * METHOD: Convert
-	 * -------------------------------------------------------------------------
+	/**
+	 * Method: Convert
+	 * =========================================================================
 	 * This will do the actual converting
 	 * 
 	 * Parameters:
-	 * 	$dom - A DOM Object to convert to an array
+	 * -------------------------------------------------------------------------
+	 * $dom - A DOM Object to convert to an array
 	 * 
 	 * Returns:
-	 * 	array
+	 * -------------------------------------------------------------------------
+	 * array
 	 */
 	public function Convert($dom)
 	{
 		return $this->FromDom($dom);
 	}
 	
-	/*
-	 * METHOD: FromDom
-	 * -------------------------------------------------------------------------
+	/**
+	 * Method: FromDom
+	 * =========================================================================
 	 * This is a recursive function that will iterate through the DOM Nodes
 	 * to create the array for easier inspection and manipulation.
 	 * 
 	 * Parameters:
-	 * 	$domNode - A DOM Node to convert to an array
+	 * -------------------------------------------------------------------------
+	 * $domNode - A DOM Node to convert to an array
 	 * 
 	 * Returns:
-	 * 	array
+	 * -------------------------------------------------------------------------
+	 * array
 	 */
 	private function FromDom($domNode)
 	{
