@@ -21,7 +21,7 @@ class Table extends \Gears\Arrays\Conversions\Template
 	 * This is either a CSS or Xpath Query to give the location of the
 	 * HTML Table you would like to convert toi an array.
 	 */
-	protected $table_location;
+	protected $table_location = 'table';
 	
 	/**
 	 * Property: table_headings
