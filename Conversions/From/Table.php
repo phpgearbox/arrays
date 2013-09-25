@@ -55,7 +55,7 @@ class Table extends \Gears\Arrays\Conversions\Template
 	{
 		// First of all lets do some simple string manipulation
 		$data = str_replace(['<thead>', '</thead>', '<tbody>', '</tbody>', '<tfoot>', '</tfoot>'], '', $data);
-		$data = str_replace(['<th', '</th'], ['<tr', '</tr'], $data);
+		$data = str_replace(['<th', '</th'], ['<td', '</td'], $data);
 		
 		// Create a new dom object
 		$dom = new \Zend\Dom\Query($data);
