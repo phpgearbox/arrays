@@ -12,8 +12,7 @@
 	},
 	"autoload":
 	{
-		"psr-0": { "Gears\\Arrays\\": "" },
-		"files": ["Gears/Arrays/Functions.php"]
-	},
-	"target-dir": "Gears/Arrays"
+		"psr-4": { "Gears\\Arrays\\": "" },
+		"files": ["Functions.php"]
+	}
 }
