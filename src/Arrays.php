@@ -1,4 +1,4 @@
-<?php
+<?php namespace Gears;
 ////////////////////////////////////////////////////////////////////////////////
 // __________ __             ________                   __________              
 // \______   \  |__ ______  /  _____/  ____ _____ ______\______   \ _______  ___
@@ -11,9 +11,7 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Gears\Arrays;
-
-class Object implements \ArrayAccess, \Iterator, \Countable
+class Arrays implements \ArrayAccess, \Iterator, \Countable
 {
 	/**
 	 * Property: $value
@@ -41,7 +39,7 @@ class Object implements \ArrayAccess, \Iterator, \Countable
 	}
 	
 	/**
-	 * Method: F
+	 * Method: a
 	 * =========================================================================
 	 * This is the static factory method allowing a syntax like this:
 	 * 
@@ -55,7 +53,7 @@ class Object implements \ArrayAccess, \Iterator, \Countable
 	 * -------------------------------------------------------------------------
 	 * A new instance of Gears\Arrays\Object
 	 */
-	public static function F($array)
+	public static function a($array)
 	{
 		return new self($array);
 	}
