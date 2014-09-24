@@ -29,13 +29,21 @@ class ArraysObjectTest extends PHPUnit_Framework_TestCase
 		$test2 = $test1->pull('a');
 		$test3 = $test1->pull('b');
 
+		//$test1->set('c.1.adhgjh', 'sdghfdhfdh');
+		//print_r($test1);
+		//exit;
+
 		$test4 = Arr::pull($exampleArray, 'a');
 		$test5 = Gears\Arrays\pull($exampleArray, 'b');
+		Arr::set($exampleArray, 'address.street3', 'dfhh');
 
 		$test1->address = [];
 		$test1->address->street = 'fhjfg';
 		$test1->address->street2 = 'fhjfg346';
 		$test1->set('address.street3', 'fggjg4574578');
+		$test1['address']['street4'] = ['gfhjfgj', 'fjgdfjg'];
+		$test1['address.street5.dshdh'] = ['gfhjfgj', 'fjgdfjg'];
+		$test1->address->street4;
 
 		print_r($test1);
 		print_r($test2);

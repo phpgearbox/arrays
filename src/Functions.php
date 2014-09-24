@@ -257,7 +257,10 @@ function set(&$array, $key, $value)
 		// If the key doesn't exist at this depth, we will just create an empty array
 		// to hold the next value, allowing us to create the arrays to hold final
 		// values at the correct depth. Then we'll keep digging into the array.
-		if (!isset($array[$key])) $array[$key] = array();
+		if (!isset($array[$key]) || !(is_array($array[$key]) || $array[$key] instanceof \Gears\Arrays\Fluent))
+		{
+			$array[$key] = array();
+		}
 
 		$array =& $array[$key];
 	}

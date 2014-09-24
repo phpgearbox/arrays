@@ -12,6 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 use \Gears\Arrays\Exceptions\InvalidMethod;
+use \Gears\Arrays\Exceptions\InvalidOffset;
 
 class Fluent implements \ArrayAccess, \Iterator, \Countable
 {
@@ -25,7 +26,7 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 	/**
 	 * Method: __construct
 	 * =========================================================================
-	 * Creates a new Gears\Arrays\Fluent object.
+	 * Simply casts the input to an array and saves it to our new object.
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
@@ -37,19 +38,9 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 	 */
 	public function __construct($array)
 	{
-		foreach ($array as $key => $value)
-		{
-			if (is_array($value))
-			{
-				$this->value[$key] = new static($value);
-			}
-			else
-			{
-				$this->value[$key] = $value;
-			}
-		}
+		$this->value = (array) $array;
 	}
-	
+
 	/**
 	 * Method: count
 	 * =========================================================================
@@ -101,7 +92,7 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 	 */
 	public function current()
 	{
-		return current($this->value);
+		return $this->lazyLoadFluent(key($this->value));
 	}
 	
 	/**
@@ -198,11 +189,11 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 	{
 		if ($this->offsetExists($index))
 		{
-			return $this->value[$index];
+			return $this->lazyLoadFluent($index);
 		}
 		else
 		{
-			return null;
+			throw new InvalidOffset($index);
 		}
 	}
 
@@ -227,15 +218,15 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 	 */
 	public function offsetSet($index, $value)
 	{
-		if (is_array($value)) $value = new static($value);
-
 		if (is_null($index))
 		{
 			$this->value[] = $value;
 		}
 		else
 		{
-			$this->value[$index] = $value;
+			// This optionally allows dot notation - so you could do stuff like.
+			// $test['a.b.c'] = '123';
+			$this->set($index, $value);
 		}
 	}
 
@@ -265,6 +256,31 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 	public function __unset($name)
 	{
 		return $this->offsetUnset($name);
+	}
+
+	/**
+	 * Method: lazyLoadFluent
+	 * =========================================================================
+	 * So that we don't waste time recursively creating a heap of
+	 * Gears\Arrays\Fluent objects unnecessarily we only do so right before
+	 * they are needed.
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $array - A PHP array to turn into a Gears\Arrays\Fluent object.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	private function lazyLoadFluent($key)
+	{
+		if (is_array($this->value[$key]))
+		{
+			$this->value[$key] = new static($this->value[$key]);
+		}
+
+		return $this->value[$key];
 	}
 	
 	/**
@@ -378,7 +394,6 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 		if (!function_exists($func_name))
 		{
 			// Try a macro
-			// NOTE: Macros cant have values passed by reference
 			if (\Gears\Arrays::hasMacro($name))
 			{
 				$func_name = '\Gears\Arrays::'.$name;
@@ -386,12 +401,13 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 			else
 			{
 				// Bail out, we don't have a function to run
-				throw new InvalidMethod();
+				throw new InvalidMethod($name);
 			}
 		}
 
 		// Prepend the current string value to the arguments
-		// Some functions require a reference so we define it here
+		// Some functions require a reference so we define it here.
+		// NOTE: Macros can't have values passed by reference.
 		$refrenced_args = [&$this->value];
 		foreach ($arguments as $arg) $refrenced_args[] = $arg;
 		$arguments = $refrenced_args;
@@ -403,18 +419,20 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 		{
 			// Nothing to return so just return the current instance.
 			// This probably means a function that acted on the array
-			// by refrence ran.
+			// by reference ran.
 			return $this;
 		}
 		else
 		{
-			// Return a new instance of ourselves with the new results.
 			if (is_array($result))
 			{
+				// Return a new instance of ourselves with the new results.
 				return new static($result);
 			}
 			else
 			{
+				// Otherwise we just return the result from the function.
+				// This is now the end of our Gears\Array\Fluent object.
 				return $result;
 			}
 		}
