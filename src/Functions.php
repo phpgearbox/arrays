@@ -12,10 +12,30 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * Function: Debug
+ * Function: each
  * =============================================================================
- * This will output an array for debug purposes. If running from a web server
- * we will wrap it in some pre tags for you.
+ * Executes a callback for each item of the array.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to apply the callback to.
+ * $callback - A closure to run.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * The array with the callback applied.
+ */
+function each($array, \Closure $callback)
+{
+	return array_map($callback, $array);
+}
+
+/**
+ * Function: debug
+ * =============================================================================
+ * This will output an array for debug purposes.
+ * If running from a web server we will wrap it in some pre tags for you.
+ * And then we kill the script.
  * 
  * Parameters:
  * -----------------------------------------------------------------------------
@@ -25,7 +45,7 @@
  * -----------------------------------------------------------------------------
  * void
  */
-function Debug($array)
+function debug($array)
 {
 	// are we running on the command line or in a browser
 	if (php_sapi_name() == 'cli')
@@ -41,10 +61,13 @@ function Debug($array)
 			'</div>'
 		;
 	}
+
+	// kill php
+	exit;
 }
 
 /**
- * Function: ToString
+ * Function: toString
  * =============================================================================
  * Returns an easily readable string representation of a nested array structure.
  * 
@@ -57,13 +80,13 @@ function Debug($array)
  * -----------------------------------------------------------------------------
  * string
  */
-function ToString($array, $showKeys = null)
+function toString($array, $showKeys = null)
 {
 	// Set a counter
 	$idx = 0;
 	
 	// Remap the array
-	$remapped = MapWithKey($array, function ($v, $k) use (&$idx, $showKeys)
+	$remapped = mapWithKey($array, function ($v, $k) use (&$idx, $showKeys)
 	{
 		if ($showKeys === null && $idx++ === $k || $showKeys === false)
 		{
@@ -74,9 +97,9 @@ function ToString($array, $showKeys = null)
 			$str = "$k => ";
 		}
 		
-		if (is_array($v))
+		if (is_array($v) || $v instanceof \Gears\Arrays\Fluent)
 		{
-			$str .= ToString($v, $showKeys);
+			$str .= toString($v, $showKeys);
 		}
 		else if (is_object($v))
 		{
@@ -102,7 +125,7 @@ function ToString($array, $showKeys = null)
 }
 
 /**
- * Function: Search
+ * Function: search
  * =============================================================================
  * This will search an array recursively for your search terms.
  * 
@@ -117,7 +140,7 @@ function ToString($array, $showKeys = null)
  * -----------------------------------------------------------------------------
  * An array of results or false if it can find anything
  */
-function Search($array, $search, $exact = true, $trav_keys = null)
+function search($array, $search, $exact = true, $trav_keys = null)
 {
 	// Check to make sure we have something to search for and search in.
 	if(!is_array($array) || !$search || ($trav_keys && !is_array($trav_keys)))
@@ -166,7 +189,7 @@ function Search($array, $search, $exact = true, $trav_keys = null)
 		if (is_array($val))
 		{
 			// Recursively call ourselves
-			$children_results = Search($val, $search, $exact, $used_keys);
+			$children_results = search($val, $search, $exact, $used_keys);
 			if ($children_results)
 			{
 				$results = array_merge($results, $children_results);
@@ -207,7 +230,45 @@ function Search($array, $search, $exact = true, $trav_keys = null)
 }
 
 /**
- * Function: GetNested
+ * Function: set
+ * =============================================================================
+ * ...
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - 
+ * $keys  - 
+ * $value - 
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function set(&$array, $key, $value)
+{
+	if (is_null($key)) return $array = $value;
+
+	$keys = explode('.', $key);
+
+	while (count($keys) > 1)
+	{
+		$key = array_shift($keys);
+
+		// If the key doesn't exist at this depth, we will just create an empty array
+		// to hold the next value, allowing us to create the arrays to hold final
+		// values at the correct depth. Then we'll keep digging into the array.
+		if (!isset($array[$key])) $array[$key] = array();
+
+		$array =& $array[$key];
+	}
+
+	$array[array_shift($keys)] = $value;
+
+	return $array;
+}
+
+/**
+ * Function: get
  * =============================================================================
  * Retrieves a nested element from an array or $default if it doesn't exist.
  * 
@@ -217,9 +278,12 @@ function Search($array, $search, $exact = true, $trav_keys = null)
  * 		'Bob' => ['age' => 29],
  * 	];
  * 	
- * 	GetNested($friends, 'Alice.hobbies.1'); //=> 'skiing'
- * 	GetNested($friends, ['Alice', 'hobbies', 1]); //=> 'skiing'
- * 	GetNested($friends, 'Bob.hobbies.0', 'none'); //=> 'none'
+ * 	get($friends, 'Alice.hobbies.1'); //=> 'skiing'
+ * 	get($friends, ['Alice', 'hobbies', 1]); //=> 'skiing'
+ * 	get($friends, 'Bob.hobbies.0', 'none'); //=> 'none'
+ * 
+ * NOTE: This replaces the laravel version here: *Illuminate\Support\Arr::get()*
+ * because this version allows you to supply an array of keys or dot notation.
  * 
  * Parameters:
  * -----------------------------------------------------------------------------
@@ -231,34 +295,29 @@ function Search($array, $search, $exact = true, $trav_keys = null)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function GetNested($array, $keys, $default = null)
+function get($array, $keys, $default = null)
 {
-	if (is_string($keys))
-	{
-		$keys = explode('.', $keys);
-	}
-	else if ($keys === null)
-	{
-		return $array;
-	}
+	if (is_null($keys)) return $array;
+
+	if (isset($array[$keys])) return $array[$keys];
+
+	if (is_string($keys)) $keys = explode('.', $keys);
 	
 	foreach ($keys as $key)
 	{
-		if (is_array($array) && array_key_exists($key, $array))
+		if (!is_array($array) || !array_key_exists($key, $array))
 		{
-			$array = $array[$key];
+			return value($default);
 		}
-		else
-		{
-			return $default;
-		}
+
+		$array = $array[$key];
 	}
 	
 	return $array;
 }
 
 /**
- * Function: GetOrElse
+ * Function: getOrElse
  * =============================================================================
  * Returns the value at the given index or $default if it not present
  * 
@@ -272,13 +331,13 @@ function GetNested($array, $keys, $default = null)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function GetOrElse($array, $key, $default = null)
+function getOrElse($array, $key, $default = null)
 {
 	return array_key_exists($key, $array) ? $array[$key] : $default;
 }
 
 /**
- * Function: GetOrPut
+ * Function: getOrPut
  * =============================================================================
  * Returns the value at the given index. If not present,
  * inserts $default and returns it
@@ -293,7 +352,7 @@ function GetOrElse($array, $key, $default = null)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function GetOrPut(&$array, $key, $default = null)
+function getOrPut(&$array, $key, $default = null)
 {
 	if (!array_key_exists($key, $array))
 	{
@@ -304,36 +363,7 @@ function GetOrPut(&$array, $key, $default = null)
 }
 
 /**
- * Function: GetAndDelete
- * =============================================================================
- * Deletes and returns a value from an array
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array - The array to search / update.
- * $key - The key to search for
- * $default - An optional default to return when the key doesn't exist.
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * mixed
- */
-function GetAndDelete(&$array, $key, $default = null)
-{
-	if (array_key_exists($key, $array))
-	{
-		$result = $array[$key];
-		unset($array[$key]);
-		return $result;
-	}
-	else
-	{
-		return $default;
-	}
-}
-
-/**
- * Function: TakeWhile
+ * Function: takeWhile
  * =============================================================================
  * Returns longest prefix of elements that satisfy the $predicate.
  * The predicate will be passed value and key of each element.
@@ -347,7 +377,7 @@ function GetAndDelete(&$array, $key, $default = null)
  * -----------------------------------------------------------------------------
  * array
  */
-function TakeWhile($array, $predicate)
+function takeWhile($array, $predicate)
 {
 	$n = 0;
 	
@@ -361,7 +391,7 @@ function TakeWhile($array, $predicate)
 }
 
 /**
- * Function: DropWhile
+ * Function: dropWhile
  * =============================================================================
  * Drops longest prefix of elements satisfying $predicate and returns the rest.
  * 
@@ -374,7 +404,7 @@ function TakeWhile($array, $predicate)
  * -----------------------------------------------------------------------------
  * array
  */
-function DropWhile($array, $predicate)
+function dropWhile($array, $predicate)
 {
 	$n = 0;
 	
@@ -388,7 +418,7 @@ function DropWhile($array, $predicate)
 }
 
 /**
- * Function: Repeat
+ * Function: repeat
  * =============================================================================
  * Repeats the array $n times.
  * TODO: Convert to iterator to conserve memory and time
@@ -402,7 +432,7 @@ function DropWhile($array, $predicate)
  * -----------------------------------------------------------------------------
  * array
  */
-function Repeat($array, $n)
+function repeat($array, $n)
 {
 	$result = array();
 	
@@ -418,7 +448,7 @@ function Repeat($array, $n)
 }
 
 /**
- * Function: Find
+ * Function: find
  * =============================================================================
  * Returns the first value of the array satisfying the $predicate or $default
  * 
@@ -432,7 +462,7 @@ function Repeat($array, $n)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function Find($array, $predicate, $default = null)
+function find($array, $predicate, $default = null)
 {
 	foreach ($array as $key => $value)
 	{
@@ -446,7 +476,7 @@ function Find($array, $predicate, $default = null)
 }
 
 /**
- * Function: FindLast
+ * Function: findLast
  * =============================================================================
  * Returns the last value of the array satisfying the $predicate or $default
  * 
@@ -460,13 +490,13 @@ function Find($array, $predicate, $default = null)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function FindLast($array, $predicate, $default = null)
+function findLast($array, $predicate, $default = null)
 {
-	return Find(array_reverse($array, true), $predicate, $default);
+	return find(array_reverse($array, true), $predicate, $default);
 }
 
 /**
- * Function: FindKey
+ * Function: findKey
  * =============================================================================
  * Returns the first key satisfying the $predicate or null
  * 
@@ -480,7 +510,7 @@ function FindLast($array, $predicate, $default = null)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function FindKey($array, $predicate, $default = null)
+function findKey($array, $predicate, $default = null)
 {
 	foreach ($array as $key => $value)
 	{
@@ -494,7 +524,7 @@ function FindKey($array, $predicate, $default = null)
 }
 
 /**
- * Function: FindLastKey
+ * Function: findLastKey
  * =============================================================================
  * Returns the last key satisfying the $predicate or null
  * 
@@ -508,55 +538,13 @@ function FindKey($array, $predicate, $default = null)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function FindLastKey($array, $predicate, $default = null)
+function findLastKey($array, $predicate, $default = null)
 {
-	return FindKey(array_reverse($array, true), $predicate, $default);
+	return findKey(array_reverse($array, true), $predicate, $default);
 }
 
 /**
- * Function: Only
- * =============================================================================
- * Returns only those values whose keys are present in $keys
- * 
- * 	Only(range('a', 'e'), [3, 4]); //=> ['d', 'e']
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array - The array to search
- * $keys - The keys youi want
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * array
- */
-function Only($array, $keys)
-{
-	return array_intersect_key($array, array_flip($keys));
-}
-
-/**
- * Function: Except
- * =============================================================================
- * Returns only those values whose keys are not present in $keys
- * 
- * 	Except(range('a', 'e'), [2, 4]); //=> ['a', 'b', 'd']
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array - The array to search
- * $keys - The keys you dont want
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * array
- */
-function Except($array, $keys)
-{
-	return array_diff_key($array, array_flip($keys));
-}
-
-/**
- * Function: IndexBy
+ * Function: indexBy
  * =============================================================================
  * Re-indexes the array by either results of the callback or a sub-key
  * 
@@ -570,7 +558,7 @@ function Except($array, $keys)
  * -----------------------------------------------------------------------------
  * array
  */
-function IndexBy($array, $callbackOrKey, $arrayAccess = true)
+function indexBy($array, $callbackOrKey, $arrayAccess = true)
 {
 	$indexed = array();
 	
@@ -603,7 +591,7 @@ function IndexBy($array, $callbackOrKey, $arrayAccess = true)
 }
 
 /**
- * Function: GroupBy
+ * Function: groupBy
  * =============================================================================
  * Groups the array into sets key by either results of a callback or a sub-key
  * 
@@ -617,7 +605,7 @@ function IndexBy($array, $callbackOrKey, $arrayAccess = true)
  * -----------------------------------------------------------------------------
  * array
  */
-function GroupBy($array, $callbackOrKey, $arrayAccess = true)
+function groupBy($array, $callbackOrKey, $arrayAccess = true)
 {
 	$groups = array();
 	
@@ -650,7 +638,7 @@ function GroupBy($array, $callbackOrKey, $arrayAccess = true)
 }
 
 /**
- * Function: All
+ * Function: all
  * =============================================================================
  * Returns true if all elements satisfy the given predicate
  * 
@@ -663,7 +651,7 @@ function GroupBy($array, $callbackOrKey, $arrayAccess = true)
  * -----------------------------------------------------------------------------
  * boolean
  */
-function All($array, $predicate)
+function all($array, $predicate)
 {
 	foreach ($array as $key => $value)
 	{
@@ -677,7 +665,7 @@ function All($array, $predicate)
 }
 
 /**
- * Function: Any
+ * Function: any
  * =============================================================================
  * Returns true if at least one element satisfies the given predicate
  * 
@@ -690,7 +678,7 @@ function All($array, $predicate)
  * -----------------------------------------------------------------------------
  * boolean
  */
-function Any($array, $predicate)
+function any($array, $predicate)
 {
 	foreach ($array as $key => $value)
 	{
@@ -704,7 +692,7 @@ function Any($array, $predicate)
 }
 
 /**
- * Function: One
+ * Function: one
  * =============================================================================
  * Returns true if exactly one element satisfies the given predicate
  * 
@@ -717,13 +705,13 @@ function Any($array, $predicate)
  * -----------------------------------------------------------------------------
  * boolean
  */
-function One($array, $predicate)
+function one($array, $predicate)
 {
-	return Exactly($array, 1, $predicate);
+	return exactly($array, 1, $predicate);
 }
 
 /**
- * Function: None
+ * Function: none
  * =============================================================================
  * Returns true if none of the elements satisfy $predicate
  * 
@@ -736,13 +724,13 @@ function One($array, $predicate)
  * -----------------------------------------------------------------------------
  * boolean
  */
-function None($array, $predicate)
+function none($array, $predicate)
 {
-	return Exactly($array, 0, $predicate);
+	return exactly($array, 0, $predicate);
 }
 
 /**
- * Function: Exactly
+ * Function: exactly
  * =============================================================================
  * Returns true if exactly $n elements satisfy the $predicate
  * 
@@ -756,7 +744,7 @@ function None($array, $predicate)
  * -----------------------------------------------------------------------------
  * boolean
  */
-function Exactly($array, $n, $predicate)
+function exactly($array, $n, $predicate)
 {
 	$found = 0;
 	
@@ -775,7 +763,7 @@ function Exactly($array, $n, $predicate)
 }
 
 /**
- * Function: FilterWithKey
+ * Function: filterWithKey
  * =============================================================================
  * Keeps only those elements that satisfy the $predicate
  * Differs from array_filter() in that the key of each element
@@ -790,7 +778,7 @@ function Exactly($array, $n, $predicate)
  * -----------------------------------------------------------------------------
  * array
  */
-function FilterWithKey($array, $predicate)
+function filterWithKey($array, $predicate)
 {
 	$result = array();
 	
@@ -806,7 +794,7 @@ function FilterWithKey($array, $predicate)
 }
 
 /**
- * Function: Sample
+ * Function: sample
  * =============================================================================
  * Returns $size random elements from the array or a single element if $size
  * is null. This function differs from array_rand() in that it returns an array
@@ -821,7 +809,7 @@ function FilterWithKey($array, $predicate)
  * -----------------------------------------------------------------------------
  * array
  */
-function Sample($array, $size = null)
+function sample($array, $size = null)
 {
 	if ($size === null)
 	{
@@ -829,12 +817,12 @@ function Sample($array, $size = null)
 	}
 	else
 	{
-		return Only($array, (array)array_rand($array, $size));
+		return only($array, (array)array_rand($array, $size));
 	}
 }
 
 /**
- * Function: MapWithKey
+ * Function: mapWithKey
  * =============================================================================
  * Map the collection into another, applying $callback to each element and its
  * key. This function differs from the built-in array_map() in that it also
@@ -852,7 +840,7 @@ function Sample($array, $size = null)
  * -----------------------------------------------------------------------------
  * array
  */
-function MapWithKey($array, $callback)
+function mapWithKey($array, $callback)
 {
 	$mapped = array();
 	
@@ -865,7 +853,7 @@ function MapWithKey($array, $callback)
 }
 
 /**
- * Function: FlatMap
+ * Function: flatMap
  * =============================================================================
  * Maps an array into another by applying $callback
  * to each element and flattening the results.
@@ -882,7 +870,7 @@ function MapWithKey($array, $callback)
  * -----------------------------------------------------------------------------
  * array
  */
-function FlatMap($array, $callback)
+function flatMap($array, $callback)
 {
 	$result = array();
 	
@@ -902,76 +890,7 @@ function FlatMap($array, $callback)
 }
 
 /**
- * Function: Pluck
- * =============================================================================
- * Shortcut method to pick out specified keys/properties
- * from an array of arrays/objects.
- * 
- * 	$people =
- * 	[
- * 	     ['name' => 'Bob', 'age' => 23],
- * 	     ['name' => 'Alice', 'age' => 32],
- * 	     ['name' => 'Frank', 'age' => 40],
- * 	];
- * 	
- * 	Pluck($people, 'name'); //=> ['Bob', 'Alice', 'Frank']
- * 	Pluck($people, 'age', 'name'); //=> ['Bob' => 23, 'Alice' => 32, 'Frank' => 40]
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array -
- * $valueAttribute - 
- * $keyAttribute - 
- * $arrayAccess - Determines whether to use array access ($elem[$prop]) or property access ($elem->$prop)
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * array
- */
-function Pluck($array, $valueAttribute, $keyAttribute = null, $arrayAccess = true)
-{
-	$result = array();
-	
-	if ($arrayAccess)
-	{
-		if ($keyAttribute)
-		{
-			foreach ($array as $value)
-			{
-				$result[$value[$keyAttribute]] = $value[$valueAttribute];
-			}
-		}
-		else
-		{
-			foreach ($array as $key => $value)
-			{
-				$result[$key] = $value[$valueAttribute];
-			}
-		}
-	}
-	else
-	{
-		if ($keyAttribute)
-		{
-			foreach ($array as $value)
-			{
-				$result[$value->{$keyAttribute}] = $value->{$valueAttribute};
-			}
-		}
-		else
-		{
-			foreach ($array as $key => $value)
-			{
-				$result[$key] = $value->{$valueAttribute};
-			}
-		}
-	}
-	
-	return $result;
-}
-
-/**
- * Function: MapToAssoc
+ * Function: mapToAssoc
  * =============================================================================
  * Creates an associative array by invoking $callback on each element and
  * using the 2 resulting values as key and value.
@@ -989,7 +908,7 @@ function Pluck($array, $valueAttribute, $keyAttribute = null, $arrayAccess = tru
  * -----------------------------------------------------------------------------
  * array
  */
-function MapToAssoc($array, $callback)
+function mapToAssoc($array, $callback)
 {
 	$mapped = array();
 	
@@ -1003,27 +922,7 @@ function MapToAssoc($array, $callback)
 }
 
 /**
- * Function: Flatten
- * =============================================================================
- * Flattens the array, combining elements of all sub-arrays into one array.
- * 
- * 	Flatten([[1, 2, 3], [4, 5]]); //=> [1, 2, 3, 4, 5]
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array - The array to flatten
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * array
- */
-function Flatten($array)
-{
-	return call_user_func_array('array_merge', $array);
-}
-
-/**
- * Function: FoldWithKey
+ * Function: foldWithKey
  * =============================================================================
  * Reduces the array into a single value by calling $callback repeatedly
  * on the elements and their keys, passing the resulting value along each time.
@@ -1040,7 +939,7 @@ function Flatten($array)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function FoldWithKey($array, $callback, $initial = null)
+function foldWithKey($array, $callback, $initial = null)
 {
 	foreach ($array as $key => $value)
 	{
@@ -1051,7 +950,7 @@ function FoldWithKey($array, $callback, $initial = null)
 }
 
 /**
- * Function: FoldRight
+ * Function: foldRight
  * =============================================================================
  * Right-associative version of array_reduce().
  * 
@@ -1067,13 +966,13 @@ function FoldWithKey($array, $callback, $initial = null)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function FoldRight($array, $callback, $initial = null)
+function foldRight($array, $callback, $initial = null)
 {
 	return array_reduce(array_reverse($array, true), $callback, $initial);
 }
 
 /**
- * Function: FoldRightWithKey
+ * Function: foldRightWithKey
  * =============================================================================
  * Right-associative version of FoldWithKey()
  * 
@@ -1089,13 +988,13 @@ function FoldRight($array, $callback, $initial = null)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function FoldRightWithKey($array, $callback, $initial = null)
+function foldRightWithKey($array, $callback, $initial = null)
 {
-	return FoldWithKey(array_reverse($array, true), $callback, $initial);
+	return foldWithKey(array_reverse($array, true), $callback, $initial);
 }
 
 /**
- * Function: MinBy
+ * Function: minBy
  * =============================================================================
  * Finds the smallest element by result of $callback
  * 
@@ -1110,7 +1009,7 @@ function FoldRightWithKey($array, $callback, $initial = null)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function MinBy($array, $callback)
+function minBy($array, $callback)
 {
 	$minResult = null;
 	$minElement = null;
@@ -1129,7 +1028,7 @@ function MinBy($array, $callback)
 }
 
 /**
- * Function: MaxBy
+ * Function: maxBy
  * =============================================================================
  * Finds the largest element by result of $callback
  * 
@@ -1144,7 +1043,7 @@ function MinBy($array, $callback)
  * -----------------------------------------------------------------------------
  * mixed
  */
-function MaxBy($array, $callback)
+function maxBy($array, $callback)
 {
 	$maxResult = null;
 	$maxElement = null;
@@ -1163,7 +1062,7 @@ function MaxBy($array, $callback)
 }
 
 /**
- * Function: SumBy
+ * Function: sumBy
  * =============================================================================
  * Returns the sum of all elements passed through $callback
  * 
@@ -1178,7 +1077,7 @@ function MaxBy($array, $callback)
  * -----------------------------------------------------------------------------
  * int
  */
-function SumBy($array, $callback)
+function sumBy($array, $callback)
 {
 	$sum = 0;
 	
@@ -1191,7 +1090,7 @@ function SumBy($array, $callback)
 }
 
 /**
- * Function: Partition
+ * Function: partition
  * =============================================================================
  * Returns two arrays: one with elements that satisfy the predicate,
  * the other with elements that don't
@@ -1205,7 +1104,7 @@ function SumBy($array, $callback)
  * -----------------------------------------------------------------------------
  * array
  */
-function Partition($array, $predicate)
+function partition($array, $predicate)
 {
 	$pass = array();
 	$fail = array();
@@ -1221,7 +1120,7 @@ function Partition($array, $predicate)
 }
 
 /**
- * Function: Zip
+ * Function: zip
  * =============================================================================
  * Zips together two or more arrays.
  * 
@@ -1237,7 +1136,7 @@ function Partition($array, $predicate)
  * -----------------------------------------------------------------------------
  * array
  */
-function Zip()
+function zip()
 {
 	$args = func_get_args();
 	array_unshift($args, null);
@@ -1245,7 +1144,7 @@ function Zip()
 }
 
 /**
- * Function: ZipWith
+ * Function: zipWith
  * =============================================================================
  * 
  * 
@@ -1259,7 +1158,7 @@ function Zip()
  * -----------------------------------------------------------------------------
  * array
  */
-function ZipWith($array1, $array2, $callback)
+function zipWith($array1, $array2, $callback)
 {
 	$result = array();
 	
@@ -1273,7 +1172,7 @@ function ZipWith($array1, $array2, $callback)
 }
 
 /**
- * Function: SortBy
+ * Function: sortBy
  * =============================================================================
  * Returns a copy of the array, sorted by a key or result of a callback
  * 
@@ -1287,7 +1186,7 @@ function ZipWith($array1, $array2, $callback)
  * -----------------------------------------------------------------------------
  * array
  */
-function SortBy($array, $callbackOrKey, $mode = SORT_REGULAR)
+function sortBy($array, $callbackOrKey, $mode = SORT_REGULAR)
 {
 	$sortBy = array();
 	
@@ -1310,3 +1209,44 @@ function SortBy($array, $callbackOrKey, $mode = SORT_REGULAR)
 	
 	return $array;
 }
+
+/**
+ * Section: Laravel Stubs
+ * =============================================================================
+ * The following functions are just stubs for methods of the class:
+ * 
+ *     \Illuminate\Support\Arr
+ * 
+ * I could integrate these calls directly and dynamically into the
+ * Gears\Arr class. However then this procedural API would not match
+ * that of the Gears\Arr class.
+ * 
+ * Each function does not define any arguments, we dynamically pick these up
+ * so that any changes to the methods definition in the original Laravel class
+ * are automatically picked up here.
+ * 
+ * Thus if you are looking for documenation on how to use these functions.
+ * Please see: http://laravel.com/api/4.2/Illuminate/Support/Arr.html
+ */
+
+function add() { return call_user_func_array('\Illuminate\Support\Arr::add', func_get_args()); }
+function build() { return call_user_func_array('\Illuminate\Support\Arr::build', func_get_args()); }
+function divide() { return call_user_func_array('\Illuminate\Support\Arr::divide', func_get_args()); }
+function dot() { return call_user_func_array('\Illuminate\Support\Arr::dot', func_get_args()); }
+function except() { return call_user_func_array('\Illuminate\Support\Arr::except', func_get_args()); }
+function fetch() { return call_user_func_array('\Illuminate\Support\Arr::fetch', func_get_args()); }
+function first() { return call_user_func_array('\Illuminate\Support\Arr::first', func_get_args()); }
+function last() { return call_user_func_array('\Illuminate\Support\Arr::last', func_get_args()); }
+function flatten() { return call_user_func_array('\Illuminate\Support\Arr::flatten', func_get_args()); }
+function only() { return call_user_func_array('\Illuminate\Support\Arr::only', func_get_args()); }
+function pluck() { return call_user_func_array('\Illuminate\Support\Arr::pluck', func_get_args()); }
+function sort() { return call_user_func_array('\Illuminate\Support\Arr::sort', func_get_args()); }
+function where() { return call_user_func_array('\Illuminate\Support\Arr::where', func_get_args()); }
+
+/*
+ * The following are a few speical cases. These methods expect a refrence
+ * to be passed to the array that they act on. Where as the above methods
+ * take an array, manipulate it and return a completely new array or value.
+ */
+function pull(&$array, $key, $default = null) { return \Illuminate\Support\Arr::pull($array, $key, $default); }
+function forget(&$array, $keys) { \Illuminate\Support\Arr::forget($array, $keys); }

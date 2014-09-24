@@ -11,31 +11,19 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-class Arrays implements \ArrayAccess, \Iterator, \Countable
+use \Illuminate\Support\Arr as LaravelArray;
+use \Illuminate\Support\Traits\MacroableTrait;
+use \Gears\Arrays\Exceptions\InvalidMethod;
+
+class Arrays
 {
-	/**
-	 * Property: $value
-	 * =========================================================================
-	 * This stores the actual array that this object represents.
+	/*
+	 * Make this compatiable with the Laravel Arr class.
+	 * That way we can easily swap in our version in a Laravel App.
 	 */
-	private $value;
-	
-	/**
-	 * Method: __construct
-	 * =========================================================================
-	 * Creates a new Gears\Arrays\Object
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $array - A PHP array to turn into a Gears\Arrays\Object
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * void
-	 */
-	public function __construct($array)
+	use MacroableTrait
 	{
-		$this->value = (array)$array;
+		__callStatic as __macroCallStatic;
 	}
 	
 	/**
@@ -43,622 +31,78 @@ class Arrays implements \ArrayAccess, \Iterator, \Countable
 	 * =========================================================================
 	 * This is the static factory method allowing a syntax like this:
 	 * 
-	 * 	Gears\Arrays\Object::F($array)->Each(function($k, $v){ echo $k.$v; });
+	 * 	Arr::a($array)->each(function($k, $v){ echo $k.$v; });
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $array - A PHP array to turn into a Gears\Arrays\Object
+	 * $array - A PHP array to turn into a Gears\Arrays\Fluent object
 	 * 
 	 * Returns:
 	 * -------------------------------------------------------------------------
-	 * A new instance of Gears\Arrays\Object
+	 * A new instance of Gears\Arrays\Fluent object
 	 */
 	public static function a($array)
 	{
-		return new self($array);
+		return new \Gears\Arrays\Fluent($array);
 	}
-	
+
 	/**
-	 * Method: count
+	 * Method: __callStatic
 	 * =========================================================================
-	 * Provides the Countable Implementation
+	 * This provides a static API. As of PHP 5.5 we can't import functions from
+	 * different name spaces. In PHP 5.6 we can. So this is the next best thing.
+	 * 
+	 * For example compare this:
+	 * 
+	 *     \Gears\Arrays\pull([1,2,3], 1);
+	 * 
+	 * To this:
+	 * 
+	 *     use Gears\Arrays as Arr;
+	 *     Arr::pull([1,2,3], 1);
+	 * 
+	 * NOTE: Static calls like this will return the exact output from the
+	 * underlying function. So you can't do method chaining, etc.
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function count()
-	{
-		return count($this->value);
-	}
-	
-	/**
-	 * Method: rewind
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function rewind()
-	{
-		return reset($this->value);
-	}
-	
-	/**
-	 * Method: current
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * THIS IS KEY - We return a new instance of Gears\Arrays\Object
-	 * if the value is another array.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function current()
-	{
-		return $this->ReturnSelf(current($this->value));
-	}
-	
-	/**
-	 * Method: key
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function key()
-	{
-		return key($this->value);
-	}
-	
-	/**
-	 * Method: next
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function next()
-	{
-		return next($this->value);
-	}
-	
-	/**
-	 * Method: valid
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function valid()
-	{
-		return key($this->value) !== null;
-	}
-	
-	/**
-	 * Method: offsetExists
-	 * =========================================================================
-	 * ArrayAccess method, checks to see if the key actually exists.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $index - The integer of the index to check.
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * boolean
-	 */
-	public function offsetExists($index)
-	{
-		return !empty($this->value[$index]);
-	}
-	
-	/**
-	 * Method: offsetGet
-	 * =========================================================================
-	 * ArrayAccess method, retrieves an array value.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $index - The integer of the index to get.
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * string
-	 */
-	public function offsetGet($index)
-	{
-		return $this->ReturnSelf($this->value[$index]);
-	}
-	
-	/**
-	 * Method: offsetSet
-	 * =========================================================================
-	 * ArrayAccess method, sets an array value.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $index - The integer of the index to set.
-	 * $val - The new value for the index.
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * void
-	 */
-	public function offsetSet($index, $val)
-	{
-		$this->value[$index] = $value;
-	}
-	
-	/**
-	 * Method: offsetUnset
-	 * =========================================================================
-	 * ArrayAccess method, removes an array value.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $index - The integer of the index to delete.
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * void
-	 */
-	public function offsetUnset($index)
-	{
-		unset($this->value[$index]);
-	}
-	
-	/**
-	 * Method: ReturnSelf
-	 * =========================================================================
-	 * Used internally to return a new instance of our self
-	 * thus providing a recursive interface.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $value - The value to check if it is an array or not
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * A new instance of Gears\Arrays\Object if $value is an array.
-	 * Otherwise we just pass on $value untouched.
-	 */
-	private function ReturnSelf($value)
-	{
-		if (is_array($value))
-		{
-			return new self($value);
-		}
-		else
-		{
-			return $value;
-		}
-	}
-	
-	/**
-	 * Method: __toString
-	 * =========================================================================
-	 * Magic method to turn Gears\Arrays\Object into an easily readable
-	 * string representation of the array structure.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * string
-	 */
-	public function __toString()
-	{
-		return \Gears\Arrays\ToString($this->value);
-	}
-	
-	// Alias for above
-	public function ToString()
-	{
-		return $this->__toString();
-	}
-	
-	/**
-	 * Method: ToArray
-	 * =========================================================================
-	 * If you would like to just get a standard PHP array, call this.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $recursive - Used on subsequent recursive calls
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * array
-	 */
-	public function ToArray($recursive = false)
-	{
-		if (!$recursive) return $this->value;
-		
-		return array_map(function($array)
-		{
-			if ($array instanceof \Gears\Arrays\Object)
-			{
-				return $array->ToArray(true);
-			}
-			else
-			{
-				return $array;
-			}
-		}, $this->value);
-	}
-	
-	/**
-	 * Method: First
-	 * =========================================================================
-	 * Grab the first element of the array
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
+	 * $name - The name of the \Gears\Arrays\"FUNCTION" to call.
+	 * $arguments - The arguments to pass to the function.
 	 * 
 	 * Returns:
 	 * -------------------------------------------------------------------------
 	 * mixed
 	 */
-	public function First()
+	public static function __callStatic($name, $arguments)
 	{
-		return $this->rewind();
-	}
-	
-	/**
-	 * Method: Last
-	 * =========================================================================
-	 * Grab the last element of the array
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * mixed
-	 */
-	public function Last()
-	{
-		return end($this->value);
-	}
-	
-	/**
-	 * Method: Each
-	 * =========================================================================
-	 * This allows you to do something like this:
-	 * 
-	 * 	$obj = new Gears\Arrays\Object($array);
-	 * 	$obj->Each(function($key, $value, $index)
-	 * 	{
-	 * 		echo 'KEY: '.$key."\n";
-	 * 		echo 'VALUE: '.$value."\n";
-	 * 		echo 'INDEX: '.$index."\n";
-	 * 	});
-	 * 
-	 * The key and value or self explanatory, the index is totally optional.
-	 * In fact you don't have to use any of the paranmeters in your callback
-	 * if you don't want to.
-	 * 
-	 * I digress the index is simply a counter starting at zero increasing by
-	 * 1 for each interation. With a simple "not-named keys" array you already
-	 * have this value as the key. But with "named keys" you miss out on this.
-	 * Sometimes I find myself doing things like this:
-	 * 
-	 * 	$index = 0;
-	 * 	
-	 * 	foreach ($array as $key => $value)
-	 * 	{
-	 * 		// We only want to do 10 of these
-	 * 		if ($index > 10) break;
-	 * 		
-	 * 		// Do something with key and value
-	 * 		echo 'KEY: '.$key."\n";
-	 * 		echo 'VALUE: '.$value."\n";
-	 * 		
-	 * 		// Increase the index
-	 * 		$index++;
-	 * 	}
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $callback - callable($key, $value, $index);
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * self
-	 */
-	public function Each($callback)
-	{
-		$index = 0;
-		
-		foreach ($this->value as $key => $value)
+		// Create the function name
+		$func_name = '\Gears\Arrays\\'.$name;
+
+		// Does the function exist
+		if (!function_exists($func_name))
 		{
-			$callback($key, $this->ReturnSelf($value), $index++);
+			// Try a macro
+			if (self::hasMacro($name))
+			{
+				return self::__macroCallStatic($name, $arguments);
+			}
+
+			// Bail out, we don't have a function to run
+			throw new InvalidMethod();
 		}
-		
-		return $this;
+
+		// Call the function
+		return call_user_func_array($func_name, $arguments);
 	}
-	
-	/**
-	 * Method: Hook
-	 * =========================================================================
-	 * Invokes a callback passing the underlying array as the argument,
-	 * ignoring the return value. Useful for debugging in the middle of a chain.
-	 * Can also be used to modify the object, although doing so is discouraged.
-	 * 
-	 * For example:
-	 * 
-	 * 	$obj = new Gears\Arrays\Object($array);
-	 * 	$obj
-	 * 		->Filter(function ($v) { return $v % 2 != 0; })
-	 * 		->Hook(function ($arr) { array_unshift($arr, 0); }) // Add back zero
-	 * 		->Map(function ($v) { return $v * $v; })
-	 * 		->Hook(function ($arr) { var_dump($arr); }) // Debug
-	 * 		->Sum()
-	 * 	;
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $callback - callable($array);
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * self
-	 */
-	public function Hook($callback)
-	{
-		$callback($this->value);
-		return $this;
-	}
-	
-	public function Convert()
-	{
-		
-	}
-	
-	/**
-	 * Method: Debug
-	 * =========================================================================
-	 * If you specfically want to dump the contents of the array just call this
-	 * instead of the hook method. This will work out if your working on
-	 * the command line or in a web browser and format the output
-	 * apprioratly so that it is easily readable.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * self
-	 */
-	public function Debug()
-	{
-		\Gears\Arrays\Debug($this->value);
-		return $this;
-	}
-	
+
 	/*
-	 * Below here are all the aliased methods contained in the Functions.php
-	 * file. So go look in there for documentation. The only real difference
-	 * is that while in the procudual API the first argument will always
-	 * be an array, when using this object you obviously omit that.
+	 * The following are a few speical cases. These methods expect a refrence
+	 * to be passed to the array that they act on. Where as the methods handled
+	 * by the magic __callStatic method above take an array, manipulate it and
+	 * return a completely new array or value.
 	 */
-	
-	public function Search($search, $exact = true, $trav_keys = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Search($this->value, $search, $exact, $trav_keys));
-	}
-	
-	public function GetNested($keys, $default = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\GetNested($this->value, $keys, $default));
-	}
-	
-	public function GetOrElse($key, $default = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\GetOrElse($this->value, $key, $default));
-	}
-	
-	public function GetOrPut($key, $default = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\GetOrPut($this->value, $key, $default));
-	}
-	
-	public function GetAndDelete($key, $default = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\GetAndDelete($this->value, $key, $default));
-	}
-	
-	public function TakeWhile($predicate)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\TakeWhile($this->value, $predicate));
-	}
-	public function DropWhile($predicate)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\DropWhile($this->value, $predicate));
-	}
-	
-	public function Repeat($n)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Repeat($this->value, $n));
-	}
-	
-	public function Find($predicate, $default = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Find($this->value, $predicate, $default));
-	}
-	
-	public function FindLast($predicate, $default = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\FindLast($this->value, $predicate, $default));
-	}
-	
-	public function FindKey($predicate, $default = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\FindKey($this->value, $predicate, $default));
-	}
-	
-	public function FindLastKey($predicate, $default = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\FindLastKey($this->value, $predicate, $default));
-	}
-	
-	public function Only($keys)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Only($this->value, $keys));
-	}
-	
-	public function Except($keys)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Except($this->value, $keys));
-	}
-	
-	public function IndexBy($callbackOrKey, $arrayAccess = true)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\IndexBy($this->value, $callbackOrKey, $arrayAccess));
-	}
-	
-	public function GroupBy($callbackOrKey, $arrayAccess = true)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\GroupBy($this->value, $callbackOrKey, $arrayAccess));
-	}
-	
-	public function All($predicate)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\All($this->value, $predicate));
-	}
-	
-	public function Any($predicate)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Any($this->value, $predicate));
-	}
-	
-	public function One($predicate)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\One($this->value, $predicate));
-	}
-	
-	public function None($predicate)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\None($this->value, $predicate));
-	}
-	
-	public function Exactly($n, $predicate)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Exactly($this->value, $n, $predicate));
-	}
-	
-	public function FilterWithKey($predicate)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\FilterWithKey($this->value, $predicate));
-	}
-	
-	public function Sample($size = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Sample($this->value, $size));
-	}
-	
-	public function MapWithKey($callback)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\MapWithKey($this->value, $callback));
-	}
-	
-	public function FlatMap($callback)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\FlatMap($this->value, $callback));
-	}
-	
-	public function Pluck($valueAttribute, $keyAttribute = null, $arrayAccess = true)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Pluck($this->value, $valueAttribute, $keyAttribute, $arrayAccess));
-	}
-	
-	public function MapToAssoc($callback)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\MapToAssoc($this->value, $callback));
-	}
-	
-	public function Flatten()
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Flatten($this->value));
-	}
-	
-	public function FoldWithKey($callback, $initial = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\FoldWithKey($this->value, $callback, $initial));
-	}
-	
-	public function FoldRight($callback, $initial = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\FoldRight($this->value, $callback, $initial));
-	}
-	
-	public function FoldRightWithKey($callback, $initial = null)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\FoldRightWithKey($this->value, $callback, $initial));
-	}
-	
-	public function MinBy($callback)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\MinBy($this->value, $callback));
-	}
-	
-	public function MaxBy($callback)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\MaxBy($this->value, $callback));
-	}
-	
-	public function SumBy($callback)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\SumBy($this->value, $callback));
-	}
-	
-	public function Partition($predicate)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\Partition($this->value, $predicate));
-	}
-	
-	public function SortBy($callbackOrKey, $mode = SORT_REGULAR)
-	{
-		return $this->ReturnSelf(\Gears\Arrays\SortBy($this->value, $callbackOrKey, $mode));
-	}
+	public static function pull(&$array, $key, $default = null) { return LaravelArray::pull($array, $key, $default); }
+	public static function set(&$array, $key, $value) { return LaravelArray::set($array, $key, $value); }
+	public static function forget(&$array, $keys) { return LaravelArray::forget($array, $keys); }
+	public static function getOrPut(&$array, $key, $default = null) { return \Gears\Arrays\getOrPut($array, $key, $default); }
 }

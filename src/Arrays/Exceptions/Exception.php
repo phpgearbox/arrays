@@ -1,4 +1,4 @@
-<?php
+<?php namespace Gears\Arrays\Exceptions;
 ////////////////////////////////////////////////////////////////////////////////
 // __________ __             ________                   __________              
 // \______   \  |__ ______  /  _____/  ____ _____ ______\______   \ _______  ___
@@ -11,45 +11,9 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-use Gears\Arrays as Arr;
+use \Exception as BaseException;
 
-class ArraysObjectTest extends PHPUnit_Framework_TestCase
+class Exception extends BaseException
 {
-	public function testSomething()
-	{
-		$exampleArray =
-		[
-			'a' => [1, '2', '3'],
-			'b' => [4, '5', '6'],
-			'c' => [7, '8', '9'],
-			'd' => 'dhfhg'
-		];
-
-		$test1 = Arr::a($exampleArray);
-		$test2 = $test1->pull('a');
-		$test3 = $test1->pull('b');
-
-		$test4 = Arr::pull($exampleArray, 'a');
-		$test5 = Gears\Arrays\pull($exampleArray, 'b');
-
-		$test1->address = [];
-		$test1->address->street = 'fhjfg';
-		$test1->address->street2 = 'fhjfg346';
-		$test1->set('address.street3', 'fggjg4574578');
-
-		print_r($test1);
-		print_r($test2);
-		print_r($test3);
-
-		print_r($exampleArray);
-		print_r($test4);
-		print_r($test5);
-
-		//$test->set('1.2.3', 'hello');
-		//$test->set('1.2.3', 'hello world');
-		//$test = Arr::set($exampleArray, '1.2.3', 'hello world');
-
-		
-		exit;
-	}
+	
 }
