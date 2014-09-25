@@ -14,7 +14,7 @@
 use \Gears\Arrays\Exceptions\InvalidMethod;
 use \Gears\Arrays\Exceptions\InvalidOffset;
 
-class Fluent implements \ArrayAccess, \Iterator, \Countable
+class Fluent implements \ArrayAccess, \Iterator, \Countable, \Serializable
 {
 	/**
 	 * Property: $value
@@ -259,6 +259,42 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 	}
 
 	/**
+	 * Method: serialize
+	 * =========================================================================
+	 * Serializable Interface
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * string
+	 */
+	public function serialize()
+	{
+		return serialize($this->toArray());
+	}
+
+	/**
+	 * Method: unserialize
+	 * =========================================================================
+	 * Serializable Interface
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $serialized - The string to turnh into a new object.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	public function unserialize($serialized)
+	{
+		$this->value = unserialize($serialized);
+	}
+
+	/**
 	 * Method: lazyLoadFluent
 	 * =========================================================================
 	 * So that we don't waste time recursively creating a heap of
@@ -299,7 +335,7 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable
 	 */
 	public function __toString()
 	{
-		return \Gears\Arrays\toString($this->value);
+		return print_r($this->value, true);
 	}
 	
 	// Alias for above

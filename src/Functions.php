@@ -12,6 +12,32 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Function: isArrayLike
+ * =============================================================================
+ * This is our version of is_array. Because in our Fluent API we are dealing
+ * with Objects that act like arrays we needed a way to detect these objects
+ * as well as standard arrays.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $value - The value you think might be an array.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * bool
+ */
+function isArrayLike($value)
+{
+	return is_array($value) ||
+	(
+		$value instanceof \ArrayAccess &&
+		$value instanceof \Traversable &&
+		$value instanceof \Serializable &&
+		$value instanceof \Countable
+	);
+}
+
+/**
  * Function: each
  * =============================================================================
  * Executes a callback for each item of the array.
@@ -27,101 +53,436 @@
  */
 function each($array, \Closure $callback)
 {
-	return array_map($callback, $array);
+	$results = array();
+
+	foreach ($array as $key => $value)
+	{
+		$results[$key] = $callback($value, $key);
+	}
+
+	return $results;
 }
 
 /**
- * Function: debug
+ * Function: contains
  * =============================================================================
- * This will output an array for debug purposes.
- * If running from a web server we will wrap it in some pre tags for you.
- * And then we kill the script.
+ * Determine if an item exists in the array. This checks against the values of
+ * the array, not the keys. Simply use ```isset()``` to check if a key exists.
+ * 
+ * NOTE: This only goes one level deep. If you need to do a recursive search.
+ * Please use the ```\Gears\Arrays\search()``` function instead.
  * 
  * Parameters:
  * -----------------------------------------------------------------------------
- * $array - The array to output.
+ * $array - The array to search.
+ * $value - What are we searching for, this can be a callback.
  * 
  * Returns:
  * -----------------------------------------------------------------------------
- * void
+ * bool
  */
-function debug($array)
+function contains($array, $value)
 {
-	// are we running on the command line or in a browser
-	if (php_sapi_name() == 'cli')
+	// If the value is a callback.
+	// This uses ```Gears\Arrays\first()```
+	if ($value instanceof \Closure)
 	{
-		echo "\n\nARRAY DUMP:\n-----\n".print_r($array, true)."\n\n";
-	}
-	else
-	{
-		echo
-			'<div style="text-align:left;">'.
-				'<h1>ARRAY DUMP</h1><hr>'.
-				'<pre>'.print_r($array, true).'</pre>'.
-			'</div>'
-		;
+		return ! is_null(first($array, $value));
 	}
 
-	// kill php
-	exit;
+	// Otherwise we just use in_array
+	return in_array($value, $array);
 }
 
 /**
- * Function: toString
+ * Function: groupBy
  * =============================================================================
- * Returns an easily readable string representation of a nested array structure.
+ * Group an associative array by a field or Closure value.
  * 
  * Parameters:
  * -----------------------------------------------------------------------------
- * $array - The array to turnh into a string
- * $showKeys - Whether to output array keys. Skip to handle intelligently
+ * $array - The array to re-index.
+ * $groupBy - A string or callable
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function groupBy($array, $groupBy)
+{
+	// Create our results array
+	$results = array();
+
+	// Loop through the provided array
+	foreach ($array as $key => $value)
+	{
+		// Determine the groupByKey
+		if (!is_string($groupBy) && is_callable($groupBy))
+		{
+			$groupByKey = $groupBy($value, $key);
+		}
+		else
+		{
+			// NOTE: data_get is a laravel helper.
+			$groupByKey = data_get($value, $groupBy);
+		}
+
+		// Add the new result
+		$results[$groupByKey][] = $value;
+	}
+
+	// Returns our results
+	return $results;
+}
+
+/**
+ * Function: keyBy
+ * =============================================================================
+ * Key an associative array by a field.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to re-index.
+ * $keyBy - The key to use for the re-index.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function keyBy($array, $keyBy)
+{
+	$results = [];
+
+	foreach ($array as $item)
+	{
+		// NOTE: data_get is a laravel helper.
+		$key = data_get($item, $keyBy);
+		$results[$key] = $item;
+	}
+
+	return $results;
+}
+
+/**
+ * Function: implode
+ * =============================================================================
+ * A slight variation on the standard implode function. This function
+ * concatenates values of a given key as a string.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to work with.
+ * $value - The key to use.
+ * $glue - What are we joining the string together with.
  * 
  * Returns:
  * -----------------------------------------------------------------------------
  * string
  */
-function toString($array, $showKeys = null)
+function implode($array, $value, $glue = null)
 {
-	// Set a counter
-	$idx = 0;
-	
-	// Remap the array
-	$remapped = mapWithKey($array, function ($v, $k) use (&$idx, $showKeys)
+	if (is_null($glue)) return \implode(pluck($array, $value));
+
+	return \implode($glue, pluck($array, $value));
+}
+
+/**
+ * Function: first
+ * =============================================================================
+ * This will either return the first item in the array.
+ * If however you give us a callback we will return the first value
+ * that passes your custom truth test (the callback).
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to work with.
+ * $callback - Optional callback.
+ * $default - What to return should we not find anything.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function first($array, $callback = null, $default = null)
+{
+	if (is_null($callback))
 	{
-		if ($showKeys === null && $idx++ === $k || $showKeys === false)
-		{
-			$str = '';
-		}
-		else
-		{
-			$str = "$k => ";
-		}
-		
-		if (is_array($v) || $v instanceof \Gears\Arrays\Fluent)
-		{
-			$str .= toString($v, $showKeys);
-		}
-		else if (is_object($v))
-		{
-			if (is_callable($v, '__toString'))
-			{
-				$str .= (string)$v;
-			}
-			else
-			{
-				$str .= get_class($v);
-			}
-		}
-		else
-		{
-			$str .= (string)$v;
-		}
-		
-		return $str;
-	});
+		return count($array) > 0 ? reset($array) : null;
+	}
+	else
+	{
+		return \Gears\Arrays\Arr::first($array, $callback, $default);
+	}
+}
+
+/**
+ * Function: last
+ * =============================================================================
+ * The exact opposite of the above.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to work with.
+ * $callback - Optional callback.
+ * $default - What to return should we not find anything.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function last($array, $callback = null, $default = null)
+{
+	if (is_null($callback))
+	{
+		return count($array) > 0 ? end($array) : null;
+	}
+	else
+	{
+		return \Gears\Arrays\Arr::last($array, $callback, $default);
+	}
+}
+
+/**
+ * Function: map
+ * =============================================================================
+ * Run a map over each of the items.
+ * The callback should expect 2 parameters. One
+ * @param  \Closure  $callback
+ * @return static
+ */
+function map(Closure $callback)
+{
+	return array_map($callback, $this->items, array_keys($this->items));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SECTION: Alias Functions
+// =============================================================================
+// Some may ask why bother with the following functions???
+// 
+// Used standalone as a function I agree they are a bit pointless.
+// However please keep in mind these functions are also used in conjuction
+// with Gears\Arrays\Fluent and that is where they make sense.
+// 
+// For example:
+// 
+//     $numbers = Arr::a(['a', 'b', '1', '2'])->filter(function($value)
+//     {
+//          if (is_numeric($value)) return true;
+//     });
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Function: isEmpty
+ * =============================================================================
+ * Determine if the array is empty or not.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to work with.
+ * 
+ * Returns
+ * -----------------------------------------------------------------------------
+ * bool
+ */
+function isEmpty($array)
+{
+	return empty($array);
+}
+
+/**
+ * Function: has
+ * =============================================================================
+ * Determine if an item exists in the array by key.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to work on.
+ * $key - The key to check.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * bool
+ */
+function has($array, $key)
+{
+	return isset($array[$key]);
+}
+
+/**
+ * Function: keys
+ * =============================================================================
+ * Get the keys of the array.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to work on.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function keys($array)
+{
+	return array_keys($array);
+}
+
+/**
+ * Function: filter
+ * =============================================================================
+ * Just an alias for array_filter.
+ * 
+ * http://php.net/manual/en/function.array-filter.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to filter.
+ * $callback - The callback to run.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function filter($array, \Closure $callback)
+{
+	return array_filter($array, $callback);
+}
+
+/**
+ * Function: flip
+ * =============================================================================
+ * Just an alias for array_flip.
+ * 
+ * http://php.net/manual/en/function.array-flip.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to flip.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function flip($array)
+{
+	return array_flip($array);
+}
+
+/**
+ * Function: diff
+ * =============================================================================
+ * Just an alias for array_diff.
+ * 
+ * http://php.net/manual/en/function.array-diff.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array1 - The first array.
+ * $array2 - The second array.
+ * $array3 - etc...
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function diff()
+{
+	return call_user_func_array('array_diff', func_get_args());
+}
+
+/**
+ * Function: intersect
+ * =============================================================================
+ * Just an alias for array_intersect.
+ * 
+ * http://php.net/manual/en/function.array-intersect.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array1 - The first array.
+ * $array2 - The second array.
+ * $array3 - etc...
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function intersect()
+{
+	return call_user_func_array('array_intersect', func_get_args());
+}
+
+/**
+ * Function: lists
+ * =============================================================================
+ * Get an array with the values of a given key.
+ * 
+ * This is just an alias of pluck. We have it here so we are
+ * compatible with a Laravel ```\Illuminate\Support\Collection```
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to work on.
+ * $value - The value you want to pluck or create a list of.
+ * $key - An optional key to index the results with.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function lists($array, $value, $key = null)
+{
+	return pluck($array, $value, $key);
+}
+
+// -------------- EVERYTHING BELOW HERE IS NOT YET UNIT TESTED -------------- //
+
+/**
+ * Function: getOrElse
+ * =============================================================================
+ * Returns the value at the given index or $default if it not present
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search
+ * $key - The key to search for
+ * $default - An optional default to return when the key doesn't exist.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function getOrElse($array, $key, $default = null)
+{
+	return array_key_exists($key, $array) ? $array[$key] : $default;
+}
+
+/**
+ * Function: getOrPut
+ * =============================================================================
+ * Returns the value at the given index. If not present,
+ * inserts $default and returns it
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to search / update.
+ * $key - The key to search for
+ * $default - An optional default to be inserted when the key doesn't exist.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function getOrPut(&$array, $key, $default = null)
+{
+	if (!array_key_exists($key, $array))
+	{
+		$array[$key] = $default;
+	}
 	
-	// Return a string representation
-	return sprintf('[%s]', implode(', ', $remapped));
+	return $array[$key];
 }
 
 /**
@@ -227,142 +588,6 @@ function search($array, $search, $exact = true, $trav_keys = null)
 	
 	// Return our results
 	return $results ? $results : false;
-}
-
-/**
- * Function: set
- * =============================================================================
- * ...
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array - 
- * $keys  - 
- * $value - 
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * array
- */
-function set(&$array, $key, $value)
-{
-	if (is_null($key)) return $array = $value;
-
-	$keys = explode('.', $key);
-
-	while (count($keys) > 1)
-	{
-		$key = array_shift($keys);
-
-		// If the key doesn't exist at this depth, we will just create an empty array
-		// to hold the next value, allowing us to create the arrays to hold final
-		// values at the correct depth. Then we'll keep digging into the array.
-		if (!isset($array[$key]) || !(is_array($array[$key]) || $array[$key] instanceof \Gears\Arrays\Fluent))
-		{
-			$array[$key] = array();
-		}
-
-		$array =& $array[$key];
-	}
-
-	$array[array_shift($keys)] = $value;
-
-	return $array;
-}
-
-/**
- * Function: get
- * =============================================================================
- * Retrieves a nested element from an array or $default if it doesn't exist.
- * 
- * 	$friends =
- * 	[
- * 		'Alice' => ['age' => 33, 'hobbies' => ['biking', 'skiing']],
- * 		'Bob' => ['age' => 29],
- * 	];
- * 	
- * 	get($friends, 'Alice.hobbies.1'); //=> 'skiing'
- * 	get($friends, ['Alice', 'hobbies', 1]); //=> 'skiing'
- * 	get($friends, 'Bob.hobbies.0', 'none'); //=> 'none'
- * 
- * NOTE: This replaces the laravel version here: *Illuminate\Support\Arr::get()*
- * because this version allows you to supply an array of keys or dot notation.
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array - The array to search for your key
- * $keys  - The key path as either an array or a dot-separated string
- * $default - An optional default to return when the key doesn't exist.
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * mixed
- */
-function get($array, $keys, $default = null)
-{
-	if (is_null($keys)) return $array;
-
-	if (isset($array[$keys])) return $array[$keys];
-
-	if (is_string($keys)) $keys = explode('.', $keys);
-	
-	foreach ($keys as $key)
-	{
-		if (!is_array($array) || !array_key_exists($key, $array))
-		{
-			return value($default);
-		}
-
-		$array = $array[$key];
-	}
-	
-	return $array;
-}
-
-/**
- * Function: getOrElse
- * =============================================================================
- * Returns the value at the given index or $default if it not present
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array - The array to search
- * $key - The key to search for
- * $default - An optional default to return when the key doesn't exist.
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * mixed
- */
-function getOrElse($array, $key, $default = null)
-{
-	return array_key_exists($key, $array) ? $array[$key] : $default;
-}
-
-/**
- * Function: getOrPut
- * =============================================================================
- * Returns the value at the given index. If not present,
- * inserts $default and returns it
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array - The array to search / update.
- * $key - The key to search for
- * $default - An optional default to be inserted when the key doesn't exist.
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * mixed
- */
-function getOrPut(&$array, $key, $default = null)
-{
-	if (!array_key_exists($key, $array))
-	{
-		$array[$key] = $default;
-	}
-	
-	return $array[$key];
 }
 
 /**
@@ -591,53 +816,6 @@ function indexBy($array, $callbackOrKey, $arrayAccess = true)
 	}
 	
 	return $indexed;
-}
-
-/**
- * Function: groupBy
- * =============================================================================
- * Groups the array into sets key by either results of a callback or a sub-key
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array - The array to re-index
- * $callbackOrKey - A string or callable
- * $arrayAccess - Whether to use array or object access when given a key name
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * array
- */
-function groupBy($array, $callbackOrKey, $arrayAccess = true)
-{
-	$groups = array();
-	
-	if (is_string($callbackOrKey))
-	{
-		if ($arrayAccess)
-		{
-			foreach ($array as $element)
-			{
-				$groups[$element[$callbackOrKey]][] = $element;
-			}
-		}
-		else
-		{
-			foreach ($array as $element)
-			{
-				$groups[$element->{$callbackOrKey}][] = $element;
-			}
-		}
-	}
-	else
-	{
-		foreach ($array as $element)
-		{
-			$groups[$callbackOrKey($element)][] = $element;
-		}
-	}
-	
-	return $groups;
 }
 
 /**
@@ -1214,42 +1392,72 @@ function sortBy($array, $callbackOrKey, $mode = SORT_REGULAR)
 }
 
 /**
- * Section: Laravel Stubs
+ * Function: debug
  * =============================================================================
- * The following functions are just stubs for methods of the class:
+ * This will output an array for debug purposes.
+ * If running from a web server we will wrap it in some pre tags for you.
+ * And then we kill the script.
  * 
- *     \Illuminate\Support\Arr
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to output.
  * 
- * I could integrate these calls directly and dynamically into the
- * Gears\Arr class. However then this procedural API would not match
- * that of the Gears\Arr class.
- * 
- * Each function does not define any arguments, we dynamically pick these up
- * so that any changes to the methods definition in the original Laravel class
- * are automatically picked up here.
- * 
- * Thus if you are looking for documenation on how to use these functions.
- * Please see: http://laravel.com/api/4.2/Illuminate/Support/Arr.html
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
  */
+function debug($array)
+{
+	// are we running on the command line or in a browser
+	if (php_sapi_name() == 'cli')
+	{
+		echo "\n\nARRAY DUMP:\n-----\n".print_r($array, true)."\n\n";
+	}
+	else
+	{
+		echo
+			'<div style="text-align:left;">'.
+				'<h1>ARRAY DUMP</h1><hr>'.
+				'<pre>'.print_r($array, true).'</pre>'.
+			'</div>'
+		;
+	}
 
-function add() { return call_user_func_array('\Illuminate\Support\Arr::add', func_get_args()); }
-function build() { return call_user_func_array('\Illuminate\Support\Arr::build', func_get_args()); }
-function divide() { return call_user_func_array('\Illuminate\Support\Arr::divide', func_get_args()); }
-function dot() { return call_user_func_array('\Illuminate\Support\Arr::dot', func_get_args()); }
-function except() { return call_user_func_array('\Illuminate\Support\Arr::except', func_get_args()); }
-function fetch() { return call_user_func_array('\Illuminate\Support\Arr::fetch', func_get_args()); }
-function first() { return call_user_func_array('\Illuminate\Support\Arr::first', func_get_args()); }
-function last() { return call_user_func_array('\Illuminate\Support\Arr::last', func_get_args()); }
-function flatten() { return call_user_func_array('\Illuminate\Support\Arr::flatten', func_get_args()); }
-function only() { return call_user_func_array('\Illuminate\Support\Arr::only', func_get_args()); }
-function pluck() { return call_user_func_array('\Illuminate\Support\Arr::pluck', func_get_args()); }
-function sort() { return call_user_func_array('\Illuminate\Support\Arr::sort', func_get_args()); }
-function where() { return call_user_func_array('\Illuminate\Support\Arr::where', func_get_args()); }
+	// kill php
+	exit;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SECTION: Laravel Stubs
+// =============================================================================
+// The following functions are just stubs for methods of the class:
+// 
+//     \Gears\Arrays\Arr which extends \Illuminate\Support\Arr
+// 
+// Thus if you are looking for documentation on how to use these functions.
+// Please see: http://laravel.com/api/4.2/Illuminate/Support/Arr.html
+// 
+////////////////////////////////////////////////////////////////////////////////
+
+function add() { return call_user_func_array('\Gears\Arrays\Arr::add', func_get_args()); }
+function get() { return call_user_func_array('\Gears\Arrays\Arr::get', func_get_args()); }
+function build() { return call_user_func_array('\Gears\Arrays\Arr::build', func_get_args()); }
+function divide() { return call_user_func_array('\Gears\Arrays\Arr::divide', func_get_args()); }
+function dot() { return call_user_func_array('\Gears\Arrays\Arr::dot', func_get_args()); }
+function except() { return call_user_func_array('\Gears\Arrays\Arr::except', func_get_args()); }
+function fetch() { return call_user_func_array('\Gears\Arrays\Arr::fetch', func_get_args()); }
+function flatten() { return call_user_func_array('\Gears\Arrays\Arr::flatten', func_get_args()); }
+function only() { return call_user_func_array('\Gears\Arrays\Arr::only', func_get_args()); }
+function pluck() { return call_user_func_array('\Gears\Arrays\Arr::pluck', func_get_args()); }
+function sort() { return call_user_func_array('\Gears\Arrays\Arr::sort', func_get_args()); }
+function where() { return call_user_func_array('\Gears\Arrays\Arr::where', func_get_args()); }
 
 /*
- * The following are a few speical cases. These methods expect a refrence
+ * The following are a few special cases. These methods expect a reference
  * to be passed to the array that they act on. Where as the above methods
  * take an array, manipulate it and return a completely new array or value.
  */
-function pull(&$array, $key, $default = null) { return \Illuminate\Support\Arr::pull($array, $key, $default); }
-function forget(&$array, $keys) { \Illuminate\Support\Arr::forget($array, $keys); }
+function pull(&$array, $key, $default = null) { return \Gears\Arrays\Arr::pull($array, $key, $default); }
+function set(&$array, $key, $value) { return \Gears\Arrays\Arr::set($array, $key, $value); }
+function forget(&$array, $keys) { \Gears\Arrays\Arr::forget($array, $keys); }

@@ -11,7 +11,6 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-use \Illuminate\Support\Arr as LaravelArray;
 use \Illuminate\Support\Traits\MacroableTrait;
 use \Gears\Arrays\Exceptions\InvalidMethod;
 
@@ -32,6 +31,12 @@ class Arrays
 	 * This is the static factory method allowing a syntax like this:
 	 * 
 	 * 	Arr::a($array)->each(function($k, $v){ echo $k.$v; });
+	 * 
+	 * NOTE: Unlike the Gears\String class we were unable to combine both APIs
+	 * into the one class. This was mainly due to the fact that some of the
+	 * array functions need variables to be passed by reference and when using
+	 * the PHP magic methods __call and __callStatic, refrences can not be
+	 * passed through.
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
@@ -88,7 +93,7 @@ class Arrays
 			}
 
 			// Bail out, we don't have a function to run
-			throw new InvalidMethod();
+			throw new InvalidMethod($name);
 		}
 
 		// Call the function
@@ -96,13 +101,13 @@ class Arrays
 	}
 
 	/*
-	 * The following are a few speical cases. These methods expect a refrence
+	 * The following are a few special cases. These methods expect a reference
 	 * to be passed to the array that they act on. Where as the methods handled
 	 * by the magic __callStatic method above take an array, manipulate it and
 	 * return a completely new array or value.
 	 */
-	public static function pull(&$array, $key, $default = null) { return LaravelArray::pull($array, $key, $default); }
-	public static function set(&$array, $key, $value) { return LaravelArray::set($array, $key, $value); }
-	public static function forget(&$array, $keys) { return LaravelArray::forget($array, $keys); }
+	public static function pull(&$array, $key, $default = null) { return \Gears\Arrays\pull($array, $key, $default); }
+	public static function set(&$array, $key, $value) { return \Gears\Arrays\set($array, $key, $value); }
+	public static function forget(&$array, $keys) { return \Gears\Arrays\forget($array, $keys); }
 	public static function getOrPut(&$array, $key, $default = null) { return \Gears\Arrays\getOrPut($array, $key, $default); }
 }
