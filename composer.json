@@ -20,6 +20,7 @@
 	{
 		"phpunit/phpunit": "4.*",
 		"codegyre/robo": "*",
-		"guzzlehttp/guzzle": "4.*"
+		"guzzlehttp/guzzle": "4.*",
+		"mockery/mockery": "~0.9"
 	}
 }

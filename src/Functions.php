@@ -49,18 +49,17 @@ function isArrayLike($value)
  * 
  * Returns:
  * -----------------------------------------------------------------------------
- * The array with the callback applied.
+ * void
  */
 function each($array, \Closure $callback)
 {
-	$results = array();
-
 	foreach ($array as $key => $value)
 	{
-		$results[$key] = $callback($value, $key);
+		if ($callback($value, $key) === false)
+		{
+			break;
+		}
 	}
-
-	return $results;
 }
 
 /**
@@ -246,33 +245,20 @@ function last($array, $callback = null, $default = null)
  * Function: map
  * =============================================================================
  * Run a map over each of the items.
- * The callback should expect 2 parameters. One
- * @param  \Closure  $callback
- * @return static
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to apply the map to.
+ * $callback - A closure to run.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
  */
-function map(Closure $callback)
+function map($array, \Closure $callback)
 {
-	return array_map($callback, $this->items, array_keys($this->items));
+	return array_map($callback, $array, array_keys($array));
 }
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// SECTION: Alias Functions
-// =============================================================================
-// Some may ask why bother with the following functions???
-// 
-// Used standalone as a function I agree they are a bit pointless.
-// However please keep in mind these functions are also used in conjuction
-// with Gears\Arrays\Fluent and that is where they make sense.
-// 
-// For example:
-// 
-//     $numbers = Arr::a(['a', 'b', '1', '2'])->filter(function($value)
-//     {
-//          if (is_numeric($value)) return true;
-//     });
-// 
-////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Function: isEmpty
@@ -415,12 +401,31 @@ function intersect()
 }
 
 /**
+ * Function: merge
+ * =============================================================================
+ * Just an alias for array_merge.
+ * 
+ * http://php.net/manual/en/function.array-merge.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array1 - The first array.
+ * $array2 - The second array.
+ * $array3 - etc...
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function merge($items)
+{
+	return call_user_func_array('array_merge', func_get_args());
+}
+
+/**
  * Function: lists
  * =============================================================================
  * Get an array with the values of a given key.
- * 
- * This is just an alias of pluck. We have it here so we are
- * compatible with a Laravel ```\Illuminate\Support\Collection```
  * 
  * Parameters:
  * -----------------------------------------------------------------------------
@@ -435,6 +440,547 @@ function intersect()
 function lists($array, $value, $key = null)
 {
 	return pluck($array, $value, $key);
+}
+
+/**
+ * Function: pop
+ * =============================================================================
+ * Get and remove the last item from the array.
+ * 
+ * http://php.net/manual/en/function.array-pop.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - Passed by reference.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function pop(&$array)
+{
+	return array_pop($array);
+}
+
+/**
+ * Function: unshift
+ * =============================================================================
+ * Just an alias of array_unshift.
+ * 
+ * http://php.net/manual/en/function.array-unshift.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - Passed by reference.
+ * $value1 - The value to add to the array.
+ * $value2 - The value to add to the array.
+ * $value3 - etc
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * int
+ */
+function unshift(&$array)
+{
+	$arguments = [&$array];
+	$args = func_get_args(); array_shift($args);
+	foreach ($args as $arg) $arguments[] = $arg;
+	return call_user_func_array('array_unshift', $arguments);
+}
+
+/**
+ * Function: prepend
+ * =============================================================================
+ * Push an item onto the beginning of the array.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - Passed by reference.
+ * $value - The value to add to the array.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
+ */
+function prepend(&$array, $value)
+{
+	array_unshift($array, $value);
+}
+
+/**
+ * Function: push
+ * =============================================================================
+ * Push an item onto the end of the array.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - Passed by reference.
+ * $value - The value to add to the array.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
+ */
+function push(&$array, $value)
+{
+	$array[] = $value;
+}
+
+/**
+ * Function: put
+ * =============================================================================
+ * Put an item in the array by key.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - Passed by reference.
+ * $key - The key to assign to the new item.
+ * $value - The value to add to the array.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
+ */
+function put(&$array, $key, $value)
+{
+	$array[$key] = $value;
+}
+
+/**
+ * Function: random
+ * =============================================================================
+ * Get one or more items randomly from the array.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to select from.
+ * $amount - How many items from the array do you want, defaults to 1.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function random($array, $amount = 1)
+{
+	if (isEmpty($array)) return null;
+
+	$keys = array_rand($array, $amount);
+
+	return is_array($keys) ? array_intersect_key($array, array_flip($keys)) : $array[$keys];
+}
+
+/**
+ * Function: reduce
+ * =============================================================================
+ * Reduce the array to a single value.
+ * 
+ * http://php.net/manual/en/function.array-reduce.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $callback
+ * $initial
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function reduce($array, callable $callback, $initial = null)
+{
+	return array_reduce($array, $callback, $initial);
+}
+
+/**
+ * Function: reject
+ * =============================================================================
+ * Create a array of all elements that do not pass a given truth test.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The original array.
+ * $callback - The truth test.
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function reject($array, $callback)
+{
+	if ($callback instanceof \Closure)
+	{
+		return filter($array, function($item) use ($callback)
+		{
+			return ! $callback($item);
+		});
+	}
+
+	return filter($array, function($item) use ($callback)
+	{
+		return $item != $callback;
+	});
+}
+
+/**
+ * Function: reverse
+ * =============================================================================
+ * Reverse items order.
+ * 
+ * http://php.net/manual/en/function.array-reverse.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array - The array to reverse.
+ * 
+ * Returns
+ * -----------------------------------------------------------------------------
+ * The reversed array.
+ */
+function reverse($array)
+{
+	return array_reverse($array);
+}
+
+/**
+ * Function: search
+ * =============================================================================
+ * Search the array for a given value and return the
+ * corresponding key if successful.
+ * 
+ * http://php.net/manual/en/function.array-search.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $value
+ * $strict
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function search($array, $value, $strict = false)
+{
+	return array_search($value, $array, $strict);
+}
+
+/**
+ * Function: shift
+ * =============================================================================
+ * Get and remove the first item from the array.
+ * 
+ * http://php.net/manual/en/function.array-shift.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function shift(&$array)
+{
+	return array_shift($array);
+}
+
+/**
+ * Function: shuffle
+ * =============================================================================
+ * Shuffle the items in the array.
+ * 
+ * http://php.net/manual/en/function.shuffle.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
+ */
+function shuffle(&$array)
+{
+	shuffle($array);
+}
+
+/**
+ * Function: slice
+ * =============================================================================
+ * Slice the array.
+ * 
+ * http://php.net/manual/en/function.array-slice.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $offset
+ * $length
+ * $preserveKeys
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function slice($array, $offset, $length = null, $preserveKeys = false)
+{
+	return array_slice($array, $offset, $length, $preserveKeys);
+}
+
+/**
+ * Function: chunk
+ * =============================================================================
+ * Chunk the array.
+ * 
+ * http://php.net/manual/en/function.array-chunk.php
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $size
+ * $preserveKeys
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function chunk($array, $size, $preserveKeys = false)
+{
+	return array_chunk($array, $size, $preserveKeys);
+}
+
+/**
+ * Function: sort
+ * =============================================================================
+ * Sorts the array.
+ * 
+ * To keep compaitibility with the Laravel Collections Class and the
+ * static Laravel Arr::sort method we do diffrent things based
+ * on what we are given. ie: A real array vs an instance of Gears\Arrays\Fluent
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $size
+ * $preserveKeys
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function sort(&$array, \Closure $callback)
+{
+	if (is_array($array))
+	{
+		$original = $array;
+		sortBy($array, $callback);
+		$results = $array;
+		$array = $original;
+		return $results;
+	}
+	else
+	{
+		uasort($array, $callback);
+	}
+}
+
+/**
+ * Function: sortBy
+ * =============================================================================
+ * Sort the array using the given Closure.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $callback
+ * $options
+ * $descending
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
+ */
+function sortBy(&$array, $callback, $options = SORT_REGULAR, $descending = false)
+{
+	$results = array();
+
+	if (is_string($callback))
+	{
+		$callback = function($item) use ($callback)
+		{
+			// NOTE: data_get is a laravel helper
+			return data_get($item, $callback);
+		};
+	}
+
+	// First we will loop through the items and get the comparator from a callback
+	// function which we were given. Then, we will sort the returned values and
+	// and grab the corresponding values for the sorted keys from this array.
+	foreach ($array as $key => $value)
+	{
+		$results[$key] = $callback($value);
+	}
+
+	$descending ? arsort($results, $options) : asort($results, $options);
+
+	// Once we have sorted all of the keys in the array, we will loop through them
+	// and grab the corresponding model so we can set the underlying items list
+	// to the sorted version. Then we'll just return the collection instance.
+	foreach (array_keys($results) as $key)
+	{
+		$results[$key] = $array[$key];
+	}
+
+	$array = $results;
+}
+
+/**
+ * Function: sortByDesc
+ * =============================================================================
+ * Sort the array in descending order using the given Closure.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $callback
+ * $options
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
+ */
+function sortByDesc(&$array, $callback, $options = SORT_REGULAR)
+{
+	sortBy($array, $callback, $options, true);
+}
+
+/**
+ * Function: splice
+ * =============================================================================
+ * Remove a portion of the array and replace it with something else
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $offset
+ * $length
+ * $replacement
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function splice(&$array, $offset, $length = 0, $replacement = array())
+{
+	return array_splice($array, $offset, $length, $replacement);
+}
+
+/**
+ * Function: sum
+ * =============================================================================
+ * Get the sum of the given values.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $callback
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * mixed
+ */
+function sum($array, $callback)
+{
+	if (is_string($callback))
+	{
+		$callback = function($item) use ($callback)
+		{
+			// NOTE: data_get is a laravel helper
+			return data_get($item, $callback);
+		};
+	}
+
+	return reduce($array, function($result, $item) use ($callback)
+	{
+		return $result += $callback($item);
+
+	}, 0);
+}
+
+/**
+ * Function: take
+ * =============================================================================
+ * Take the first or last {$limit} items.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $limit
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function take($array, $limit = null)
+{
+	if ($limit < 0) return slice($array, $limit, abs($limit));
+
+	return slice($array, 0, $limit);
+}
+
+/**
+ * Function: transform
+ * =============================================================================
+ * Transform each item in the collection using a callback.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * $callback
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
+ */
+function transform(&$array, \Closure $callback)
+{
+	$array = array_map($callback, $array);
+}
+
+/**
+ * Function: unique
+ * =============================================================================
+ * Return only unique items from the collection array.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * array
+ */
+function unique($array)
+{
+	return array_unique($array);
+}
+
+/**
+ * Function: values
+ * =============================================================================
+ * Reset the keys on the underlying array.
+ * 
+ * Parameters:
+ * -----------------------------------------------------------------------------
+ * $array
+ * 
+ * Returns:
+ * -----------------------------------------------------------------------------
+ * void
+ */
+function values(&$array)
+{
+	$array = array_values($array);
 }
 
 // -------------- EVERYTHING BELOW HERE IS NOT YET UNIT TESTED -------------- //
@@ -486,7 +1032,7 @@ function getOrPut(&$array, $key, $default = null)
 }
 
 /**
- * Function: search
+ * Function: searchRecursive
  * =============================================================================
  * This will search an array recursively for your search terms.
  * 
@@ -501,7 +1047,7 @@ function getOrPut(&$array, $key, $default = null)
  * -----------------------------------------------------------------------------
  * An array of results or false if it can find anything
  */
-function search($array, $search, $exact = true, $trav_keys = null)
+function searchRecursive($array, $search, $exact = true, $trav_keys = null)
 {
 	// Check to make sure we have something to search for and search in.
 	if(!is_array($array) || !$search || ($trav_keys && !is_array($trav_keys)))
@@ -1353,45 +1899,6 @@ function zipWith($array1, $array2, $callback)
 }
 
 /**
- * Function: sortBy
- * =============================================================================
- * Returns a copy of the array, sorted by a key or result of a callback
- * 
- * Parameters:
- * -----------------------------------------------------------------------------
- * $array -
- * $callbackOrKey - 
- * $mode - 
- * 
- * Returns:
- * -----------------------------------------------------------------------------
- * array
- */
-function sortBy($array, $callbackOrKey, $mode = SORT_REGULAR)
-{
-	$sortBy = array();
-	
-	if (is_string($callbackOrKey))
-	{
-		foreach ($array as $value)
-		{
-			$sortBy[] = $value[$callbackOrKey];
-		}
-	}
-	else
-	{
-		foreach ($array as $key => $value)
-		{
-			$sortBy[] = $callbackOrKey($value, $key);
-		}
-	}
-	
-	array_multisort($sortBy, $mode, $array);
-	
-	return $array;
-}
-
-/**
  * Function: debug
  * =============================================================================
  * This will output an array for debug purposes.
@@ -1450,7 +1957,6 @@ function fetch() { return call_user_func_array('\Gears\Arrays\Arr::fetch', func_
 function flatten() { return call_user_func_array('\Gears\Arrays\Arr::flatten', func_get_args()); }
 function only() { return call_user_func_array('\Gears\Arrays\Arr::only', func_get_args()); }
 function pluck() { return call_user_func_array('\Gears\Arrays\Arr::pluck', func_get_args()); }
-function sort() { return call_user_func_array('\Gears\Arrays\Arr::sort', func_get_args()); }
 function where() { return call_user_func_array('\Gears\Arrays\Arr::where', func_get_args()); }
 
 /*

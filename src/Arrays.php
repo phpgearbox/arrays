@@ -110,4 +110,23 @@ class Arrays
 	public static function set(&$array, $key, $value) { return \Gears\Arrays\set($array, $key, $value); }
 	public static function forget(&$array, $keys) { return \Gears\Arrays\forget($array, $keys); }
 	public static function getOrPut(&$array, $key, $default = null) { return \Gears\Arrays\getOrPut($array, $key, $default); }
+	public static function values(&$array) { return \Gears\Arrays\values($array); }
+	public static function transform(&$array, \Closure $callback) { return \Gears\Arrays\transform($array, $callback); }
+	public static function splice(&$array, $offset, $length = 0, $replacement = array()) { return \Gears\Arrays\splice($array, $offset, $length, $replacement); }
+	public static function sortBy(&$array, $callback, $options = SORT_REGULAR, $descending = false) { return \Gears\Arrays\sortBy($array, $callback, $options, $descending); }
+	public static function sortByDesc(&$array, $callback, $options = SORT_REGULAR) { return \Gears\Arrays\sortByDesc($array, $callback, $options); }
+	public static function shift(&$array) { return \Gears\Arrays\shift($array); }
+	public static function put(&$array, $key, $value) { return \Gears\Arrays\put($array, $key, $value); }
+	public static function push(&$array, $value) { return \Gears\Arrays\push($array, $value); }
+	public static function prepend(&$array, $value) { return \Gears\Arrays\prepend($array, $value); }
+	public static function pop(&$array) { return \Gears\Arrays\pop($array); }
+	public static function sort(&$array, \Closure $callback) { return \Gears\Arrays\sort($array, $callback); }
+
+	public static function unshift(&$array)
+	{
+		$arguments = [&$array];
+		$args = func_get_args(); array_shift($args);
+		foreach ($args as $arg) $arguments[] = $arg;
+		return call_user_func_array('array_unshift', $arguments);
+	}
 }

@@ -13,10 +13,194 @@
 
 class ArraysFunctionsTest extends PHPUnit_Framework_TestCase
 {
+	public function testValues()
+	{
+		$data = array(array('id' => 1, 'name' => 'Hello'), array('id' => 2, 'name' => 'World'));
+		$data = Gears\Arrays\filter($data, function($item){ return $item['id'] == 2; });
+		Gears\Arrays\values($data);
+		$this->assertEquals(array(array('id' => 2, 'name' => 'World')), $data);
+	}
+
+	public function testUnique()
+	{
+		$this->assertEquals(array('Hello', 'World'), Gears\Arrays\unique(array('Hello', 'World', 'World')));
+	}
+
+	public function testTransform()
+	{
+		$data = array('taylor', 'colin', 'shawn');
+		Gears\Arrays\transform($data, function($item) { return strrev($item); });
+		$this->assertEquals(array('rolyat', 'niloc', 'nwahs'), array_values($data));
+	}
+
+	public function testTake()
+	{
+		$this->assertEquals(array('taylor', 'dayle'), Gears\Arrays\take(array('taylor', 'dayle', 'shawn'), 2));
+	}
+
+	public function testSum()
+	{
+		$data = array();
+		$this->assertEquals(0, Gears\Arrays\sum($data, 'foo'));
+
+		$data = array((object) array('foo' => 50), (object) array('foo' => 50));
+		$this->assertEquals(100, Gears\Arrays\sum($data, 'foo'));
+
+		$data = array((object) array('foo' => 50), (object) array('foo' => 50));
+		$this->assertEquals(100, Gears\Arrays\sum($data, function($i) { return $i->foo; }));
+	}
+
+	public function testSplice()
+	{
+		$data = array('foo', 'baz');
+		Gears\Arrays\splice($data, 1, 0, 'bar');
+		$this->assertEquals(array('foo', 'bar', 'baz'), $data);
+
+		$data = array('foo', 'baz');
+		Gears\Arrays\splice($data, 1, 1);
+		$this->assertEquals(array('foo'), $data);
+
+		$data = array('foo', 'baz');
+		$cut = Gears\Arrays\splice($data, 1, 1, 'bar');
+		$this->assertEquals(array('foo', 'bar'), $data);
+		$this->assertEquals(array('baz'), $cut);
+	}
+
+	public function testSortBy()
+	{
+		$data = array('taylor', 'dayle');
+		Gears\Arrays\sortBy($data, function($x) { return $x; });
+		$this->assertEquals(array(1 => 'dayle', 0 => 'taylor'), $data);
+	}
+
+	public function testSortByDesc()
+	{
+		$data = array('dayle', 'taylor');
+		Gears\Arrays\sortByDesc($data, function($x) { return $x; });
+		$this->assertEquals(array(1 => 'taylor', 0 => 'dayle'), $data);
+	}
+
+	public function testChunk ()
+	{
+		$data = Gears\Arrays\chunk(array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), 3);
+		$this->assertEquals(4, count($data));
+		$this->assertEquals(array(1, 2, 3), $data[0]);
+		$this->assertEquals(array(10), $data[3]);
+	}
+
+	public function testSlice()
+	{
+		$array = array("a", "b", "c", "d", "e");
+		$this->assertEquals(array('c', 'd', 'e'), Gears\Arrays\slice($array, 2));
+		$this->assertEquals(array('d'), Gears\Arrays\slice($array, -2, 1));
+		$this->assertEquals(array('a', 'b', 'c'), Gears\Arrays\slice($array, 0, 3));
+		$this->assertEquals(array(2 => 'c', 3 => 'd'), Gears\Arrays\slice($array, 2, -1, true));
+	}
+
+	public function testShift()
+	{
+		$array = array('foo', 'bar');
+		$this->assertEquals('foo', Gears\Arrays\shift($array));
+		$this->assertEquals('bar', Gears\Arrays\first($array));
+	}
+
+	public function testSearch()
+	{
+		$array = array(0 => 'blue', 1 => 'red', 2 => 'green', 3 => 'red');
+		$this->assertEquals(2, Gears\Arrays\search($array, 'green'));
+		$this->assertEquals(1, Gears\Arrays\search($array, 'red'));
+	}
+
+	public function testReverse()
+	{
+		$this->assertEquals(array('alan', 'zaeed'), Gears\Arrays\reverse(array('zaeed', 'alan')));
+	}
+
+	public function testReject()
+	{
+		$this->assertEquals(['foo'], Gears\Arrays\reject(['foo', 'bar'], 'bar'));
+		$this->assertEquals(['foo'], Gears\Arrays\reject(['foo', 'bar'], function($v) { return $v == 'bar'; }));
+		$this->assertEquals(['foo'], Gears\Arrays\reject(['foo', null], null));
+		$this->assertEquals(['foo', 'bar'], Gears\Arrays\reject(['foo', 'bar'], 'baz'));
+		$this->assertEquals(['foo', 'bar'], Gears\Arrays\reject(['foo', 'bar'], function($v) { return $v == 'baz'; }));
+	}
+
+	public function testReduce()
+	{
+		$this->assertEquals(15, Gears\Arrays\reduce(array(1, 2, 3, 4, 5), function($carry, $item){ $carry += $item; return $carry; }));
+	}
+
+	public function testRandom()
+	{
+		$data = array(1, 2, 3, 4, 5, 6);
+		$random = Gears\Arrays\random($data);
+		$this->assertInternalType('integer', $random);
+		$this->assertContains($random, $data);
+		$this->assertCount(3, Gears\Arrays\random($data, 3));
+		$this->assertNull(Gears\Arrays\random(array()));
+	}
+
 	public function testEach()
 	{
-		$this->assertEquals(array(2, 3, 4), Gears\Arrays\each(array(1, 2, 3), function($value){ return $value+1; }));
-		$this->assertEquals(array(1, 3, 5), Gears\Arrays\each(array(1, 2, 3), function($value, $key){ return $value+$key; }));
+		$GLOBALS['each'] = array();
+		Gears\Arrays\each(array(1, 2, 3), function($value) { $GLOBALS['each'][] = $value+1; });
+		$this->assertEquals(array(2, 3, 4), $GLOBALS['each']);
+
+		$GLOBALS['each'] = array();
+		Gears\Arrays\each(array(1, 2, 3), function($value, $key){ $GLOBALS['each'][] = $value+$key; });
+		$this->assertEquals(array(1, 3, 5), $GLOBALS['each']);
+
+		$GLOBALS['each'] = array();
+		Gears\Arrays\each(array(1, 2, 3), function($value){ $GLOBALS['each'][] = $value+1; return false; });
+		$this->assertEquals(array(2), $GLOBALS['each']);
+
+		unset($GLOBALS['each']);
+	}
+
+	public function testPut()
+	{
+		$array = array('foo', 'bar');
+		Gears\Arrays\put($array, 0, 'xyz');
+		$this->assertEquals('xyz', Gears\Arrays\first($array));
+	}
+
+	public function testPush()
+	{
+		$array = array('foo', 'bar');
+		Gears\Arrays\push($array, 'xyz');
+		$this->assertEquals('xyz', Gears\Arrays\last($array));
+	}
+
+	public function testPrepend()
+	{
+		$array = array('foo', 'bar');
+		Gears\Arrays\prepend($array, 'xyz');
+		$this->assertEquals('xyz', Gears\Arrays\first($array));
+	}
+
+	public function testUnshift()
+	{
+		$array = array('foo', 'bar');
+		$this->assertEquals(3, Gears\Arrays\unshift($array, 'xyz'));
+		$this->assertEquals('xyz', Gears\Arrays\first($array));
+	}
+
+	public function testPop()
+	{
+		$array = array('foo', 'bar');
+		$this->assertEquals('bar', Gears\Arrays\pop($array));
+		$this->assertEquals('foo', Gears\Arrays\first($array));
+	}
+
+	public function testMap()
+	{
+		$this->assertEquals(array(2, 3, 4), Gears\Arrays\map(array(1, 2, 3), function($value){ return $value+1; }));
+		$this->assertEquals(array(1, 3, 5), Gears\Arrays\map(array(1, 2, 3), function($value, $key){ return $value+$key; }));
+	}
+
+	public function testMerge()
+	{
+		$this->assertEquals(array('name' => 'Hello', 'id' => 1), Gears\Arrays\merge(array('name' => 'Hello'), array('id' => 1)));
 	}
 
 	public function testFirst()
