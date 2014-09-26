@@ -11,33 +11,20 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-use \Illuminate\Support\Traits\MacroableTrait;
+use \Gears\Arrays\Fluent;
 use \Gears\Arrays\Exceptions\InvalidMethod;
+use \Illuminate\Support\Arr as LaravelArray;
 
-class Arrays
+class Arrays extends LaravelArray
 {
-	/*
-	 * Make this compatiable with the Laravel Arr class.
-	 * That way we can easily swap in our version in a Laravel App.
-	 */
-	use MacroableTrait
-	{
-		__callStatic as __macroCallStatic;
-		__call as __macroCall;
-	}
-	
 	/**
 	 * Method: a
 	 * =========================================================================
 	 * This is the static factory method allowing a syntax like this:
 	 * 
-	 * 	Arr::a($array)->each(function($k, $v){ echo $k.$v; });
-	 * 
-	 * NOTE: Unlike the Gears\String class we were unable to combine both APIs
-	 * into the one class. This was mainly due to the fact that some of the
-	 * array functions need variables to be passed by reference and when using
-	 * the PHP magic methods __call and __callStatic, refrences can not be
-	 * passed through.
+	 * ```php
+	 * Arr::a([1,2,3])->add(4)->each(function($v){ echo $v; });
+	 * ```
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
@@ -47,28 +34,205 @@ class Arrays
 	 * -------------------------------------------------------------------------
 	 * A new instance of Gears\Arrays\Fluent object
 	 */
-	public static function a($array)
+	public static function a(array $array = array())
 	{
-		return new \Gears\Arrays\Fluent($array);
+		return Fluent::make($array);
+	}
+
+	/**
+	 * Method: add
+	 * =========================================================================
+	 * We are overloading the parent add method so that we can accept
+	 * either an array of keys or "dot" separated keys. This should stay
+	 * compatiable with the upstream method.
+	 * 
+	 * For example the following 2 calls are the same:
+	 * 
+	 * ```php
+	 * Arr::add([], 'a.b.c', 'd');
+	 * Arr::add([], ['a','b','c'], 'd');
+	 * ```
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $array - A PHP array to add items to.
+	 * $key - Can be a single key, "dot" separated keys or an array of keys.
+	 * $value - The value to set.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * array
+	 */
+	public static function add($array, $key, $value)
+	{
+		// this allows the key to be an array of keys
+		if (isArrayLike($key)) $key = implode('.', $key);
+
+		return parent::add($array, $key, $value);
+	}
+
+	/**
+	 * Method: get
+	 * =========================================================================
+	 * We are overloading the parent get method so that we can accept
+	 * either an array of keys or "dot" separated keys. This should stay
+	 * compatiable with the upstream method.
+	 * 
+	 * For example the following 2 calls are the same:
+	 * 
+	 * ```php
+	 * Arr::get(['a' => ['b' => ['c' => 'd']]], 'a.b.c');
+	 * Arr::get(['a' => ['b' => ['c' => 'd']]], ['a','b','c']);
+	 * ```
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $array - A PHP array to get items from.
+	 * $key - Can be a single key, "dot" separated keys or an array of keys.
+	 * $default - A value to return upon failure.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * mixed
+	 */
+	public static function get($array, $key, $default = null)
+	{
+		// this allows the key to be an array of keys
+		if (isArrayLike($key)) $key = implode('.', $key);
+
+		return parent::get($array, $key, $default);
+	}
+
+	/**
+	 * Method: set
+	 * =========================================================================
+	 * We are overloading the parent set method so that we can accept
+	 * either an array of keys or "dot" separated keys. This should stay
+	 * compatiable with the upstream method.
+	 * 
+	 * For example the following 2 calls are the same:
+	 * 
+	 * ```php
+	 * Arr::set([], 'a.b.c', 'd');
+	 * Arr::set([], ['a','b','c'], 'd');
+	 * ```
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $array - A refrence to the PHP array to set items in.
+	 * $key - Can be a single key, "dot" separated keys or an array of keys.
+	 * $value - The value to set.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * array
+	 */
+	public static function set(&$array, $key, $value)
+	{
+		// this allows the key to be an array of keys
+		if (isArrayLike($key)) $key = implode('.', $key);
+
+		return parent::set($array, $key, $value);
+	}
+
+	/**
+	 * Method: forget
+	 * =========================================================================
+	 * We are overloading the parent forget method so that we can accept
+	 * either an array of keys or "dot" separated keys. This should stay
+	 * compatiable with the upstream method.
+	 * 
+	 * For example the following 2 calls are the same:
+	 * 
+	 * ```php
+	 * Arr::forget(['a' => ['b' => ['c' => 'd']]], 'a.b.c');
+	 * Arr::forget(['a' => ['b' => ['c' => 'd']]], ['a','b','c']);
+	 * ```
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $array - A refrence to the PHP array to remove items from.
+	 * $keys - Can be a single key, "dot" separated keys or an array of keys.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	public static function forget(&$array, $keys)
+	{
+		// this allows the key to be an array of keys
+		if (isArrayLike($keys))
+		{
+			$new_keys = [];
+
+			foreach ($keys as $key)
+			{
+				if (isArrayLike($key))
+				{
+					$new_keys[] = implode('.', $key);
+				}
+				else
+				{
+					$new_keys[] = $key;
+				}
+			}
+
+			$keys = $new_keys;
+		}
+
+		return parent::forget($array, $keys);
+	}
+
+	/**
+	 * Method: fetch
+	 * =========================================================================
+	 * We are overloading the parent fetch method so that we can accept
+	 * either an array of keys or "dot" separated keys. This should stay
+	 * compatiable with the upstream method.
+	 * 
+	 * For example the following 2 calls are the same:
+	 * 
+	 * ```php
+	 * Arr::fetch(['a' => ['b' => ['c' => 'd']]], 'a.b.c');
+	 * Arr::fetch(['a' => ['b' => ['c' => 'd']]], ['a','b','c']);
+	 * ```
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $array - A refrence to the PHP array to remove items from.
+	 * $keys - Can be a single key, "dot" separated keys or an array of keys.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	public static function fetch($array, $key)
+	{
+		// this allows the key to be an array of keys
+		if (isArrayLike($key)) $key = implode('.', $key);
+
+		return parent::fetch($array, $key);
 	}
 
 	/**
 	 * Method: __callStatic
 	 * =========================================================================
-	 * This provides a static API. As of PHP 5.5 we can't import functions from
-	 * different name spaces. In PHP 5.6 we can. So this is the next best thing.
+	 * The existing methods in the ```Illuminate\Support\Arr``` class
+	 * are awesome. But there are some extra methods we would like to have
+	 * access to.
 	 * 
-	 * For example compare this:
+	 * This will first look for a function under our \Gears\Arrays
+	 * namespace. If one is found we call that function for you, as if it
+	 * were a static method of this class.
 	 * 
-	 *     \Gears\Arrays\pull([1,2,3], 1);
+	 * If we can't find a function there we then check for any macros.
+	 * If a macro exists we hand control to our parent.
 	 * 
-	 * To this:
+	 * On failure of all that we finally throw an InvalidMethod Exception.
 	 * 
-	 *     use Gears\Arrays as Arr;
-	 *     Arr::pull([1,2,3], 1);
-	 * 
-	 * NOTE: Static calls like this will return the exact output from the
-	 * underlying function. So you can't do method chaining, etc.
+	 * NOTE: Any functions which require a reference to be passed through will
+	 * not work via __callStatic. As the magic method does not accept
+	 * references. These functions need to be defined in this class as stubs.
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
@@ -90,7 +254,7 @@ class Arrays
 			// Try a macro
 			if (self::hasMacro($name))
 			{
-				return self::__macroCallStatic($name, $arguments);
+				return parent::__callStatic($name, $arguments);
 			}
 
 			// Bail out, we don't have a function to run
@@ -99,35 +263,5 @@ class Arrays
 
 		// Call the function
 		return call_user_func_array($func_name, $arguments);
-	}
-
-	/*
-	 * The following are a few special cases. These methods expect a reference
-	 * to be passed to the array that they act on. Where as the methods handled
-	 * by the magic __callStatic method above take an array, manipulate it and
-	 * return a completely new array or value.
-	 */
-	public static function pull(&$array, $key, $default = null) { return \Gears\Arrays\pull($array, $key, $default); }
-	public static function set(&$array, $key, $value) { return \Gears\Arrays\set($array, $key, $value); }
-	public static function forget(&$array, $keys) { return \Gears\Arrays\forget($array, $keys); }
-	public static function getOrPut(&$array, $key, $default = null) { return \Gears\Arrays\getOrPut($array, $key, $default); }
-	public static function values(&$array) { return \Gears\Arrays\values($array); }
-	public static function transform(&$array, \Closure $callback) { return \Gears\Arrays\transform($array, $callback); }
-	public static function splice(&$array, $offset, $length = 0, $replacement = array()) { return \Gears\Arrays\splice($array, $offset, $length, $replacement); }
-	public static function sortBy(&$array, $callback, $options = SORT_REGULAR, $descending = false) { return \Gears\Arrays\sortBy($array, $callback, $options, $descending); }
-	public static function sortByDesc(&$array, $callback, $options = SORT_REGULAR) { return \Gears\Arrays\sortByDesc($array, $callback, $options); }
-	public static function shift(&$array) { return \Gears\Arrays\shift($array); }
-	public static function put(&$array, $key, $value) { return \Gears\Arrays\put($array, $key, $value); }
-	public static function push(&$array, $value) { return \Gears\Arrays\push($array, $value); }
-	public static function prepend(&$array, $value) { return \Gears\Arrays\prepend($array, $value); }
-	public static function pop(&$array) { return \Gears\Arrays\pop($array); }
-	public static function sort(&$array, \Closure $callback) { return \Gears\Arrays\sort($array, $callback); }
-
-	public static function unshift(&$array)
-	{
-		$arguments = [&$array];
-		$args = func_get_args(); array_shift($args);
-		foreach ($args as $arg) $arguments[] = $arg;
-		return call_user_func_array('array_unshift', $arguments);
 	}
 }

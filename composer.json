@@ -21,6 +21,7 @@
 		"phpunit/phpunit": "4.*",
 		"codegyre/robo": "*",
 		"guzzlehttp/guzzle": "4.*",
-		"mockery/mockery": "~0.9"
+		"mockery/mockery": "~0.9",
+		"illuminate/database": "4.*"
 	}
 }

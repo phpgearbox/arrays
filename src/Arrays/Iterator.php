@@ -1,4 +1,4 @@
-<?php
+<?php namespace Gears\Arrays;
 ////////////////////////////////////////////////////////////////////////////////
 // __________ __             ________                   __________              
 // \______   \  |__ ______  /  _____/  ____ _____ ______\______   \ _______  ___
@@ -11,14 +11,36 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-class ArraysFunctionsTest extends PHPUnit_Framework_TestCase
+use \ArrayIterator;
+use \Gears\Arrays\Fluent;
+
+class Iterator extends ArrayIterator
 {
-	public function testIsArrayLike()
+	/**
+	 * Method: current
+	 * =========================================================================
+	 * Return current array entry
+	 * See: http://php.net/manual/en/arrayiterator.current.php
+	 * 
+	 * We overload this method so that we can provide a recursive
+	 * interface for the \Gears\Arrays\Fluent class.
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * mixed
+	 */
+	public function current()
 	{
-		$this->assertTrue(Gears\Arrays\isArrayLike(array()));
-		$this->assertTrue(Gears\Arrays\isArrayLike(new Gears\Arrays\Fluent()));
-		$this->assertTrue(Gears\Arrays\isArrayLike(new Gears\Arrays\Fluent(), true));
-		$this->assertFalse(Gears\Arrays\isArrayLike(array(), true));
-		$this->assertFalse(Gears\Arrays\isArrayLike('string'));
+		$key = parent::key();
+
+		$value = parent::offsetGet($key);
+
+		if (is_array($value)) $this->offsetSet($key, new Fluent($value));
+
+		return parent::offsetGet($key);
 	}
 }

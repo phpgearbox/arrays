@@ -11,424 +11,423 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
+use \Illuminate\Support\Collection;
+use \Gears\Arrays\Iterator;
 use \Gears\Arrays\Exceptions\InvalidMethod;
-use \Gears\Arrays\Exceptions\InvalidOffset;
 
-class Fluent implements \ArrayAccess, \Iterator, \Countable, \Serializable
+class Fluent extends Collection
 {
 	/**
-	 * Property: $value
+	 * Method: get
 	 * =========================================================================
-	 * This stores the actual array that this object represents.
-	 */
-	protected $value = array();
-	
-	/**
-	 * Method: __construct
-	 * =========================================================================
-	 * Simply casts the input to an array and saves it to our new object.
+	 * Get an item from the collection by key.
+	 * 
+	 * For example:
+	 * 
+	 * ```php
+	 * $data = Arr::a(['a' => ['b' => ['c' => 'd']]]);
+	 * echo $data->get('a.b.c'); // outputs: d
+	 * ```
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $array - A PHP array to turn into a Gears\Arrays\Fluent object.
+	 * $key - Can be a single key, "dot" separated keys or an array of keys.
+	 * $default - What value would you like to have returned on failure?
 	 * 
 	 * Returns:
 	 * -------------------------------------------------------------------------
-	 * void
+	 * mixed
 	 */
-	public function __construct(array $array = array())
+	public function get($key, $default = null)
 	{
-		$this->value = $array;
+		// Get the keys array
+		if (is_string($key))
+		{
+			// We found the key in the root of the array
+			if ($this->offsetExists($key))
+			{
+				return $this->offsetGet($key);
+			}
+
+			$keys = explode('.', $key);
+		}
+		elseif (isArrayLike($key))
+		{
+			$keys = $key;
+		}
+		else
+		{
+			// Bail Out - we need a key
+			// NOTE: value()_is a laravel helper
+			return value($default);
+		}
+
+		// Start searching in the root of the array
+		$array = $this->items;
+
+		// Loop through the keys
+		foreach ($keys as $key)
+		{
+			// Check to see if the key exists
+			if (!isArrayLike($array) || !array_key_exists($key, $array))
+			{
+				// Bail out and return the default.
+				// NOTE: value() is a laravel helper.
+				return value($default);
+			}
+
+			// Keep recursing into the array
+			$array = $array[$key];
+		}
+		
+		// Return the value
+		return $array;
 	}
 
-	public static function make($items)
+	/**
+	 * Method: set
+	 * =========================================================================
+	 * Set an item on the collection by key.
+	 * 
+	 * For example:
+	 * 
+	 * ```php
+	 * $data = Arr::a();
+	 * $data->set('a.b.c', 'd');
+	 * echo $data->a->b->c; // outputs: d
+	 * ```
+	 * 
+	 * NOTE: If no key is given to the method, the entire array will be
+	 * replaced. This is in keeping with the procedual version of this method.
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $key - Can be a single key, "dot" separated keys or an array of keys.
+	 * $value - The value to set on the collection.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * static
+	 */
+	public function set($key, $value)
 	{
-		if (is_null($items)) return new static;
+		// Get the keys array
+		if (is_string($key))
+		{
+			$keys = explode('.', $key);
+		}
+		elseif (isArrayLike($key))
+		{
+			$keys = $key;
+		}
+		else
+		{
+			// Assume key not provided, replace entire array with new value.
+			$this->items = (array) $value;
+			return $this;
+		}
 
-		if ($items instanceof Fluent) return $items;
+		// Start in the root of the array
+		$array =& $this->items;
 
-		return new static(is_array($items) ? $items : array($items));
-	}
+		// Loop through the keys
+		while (count($keys) > 1)
+		{
+			// Get the next key
+			$key = array_shift($keys);
 
-	public function all()
-	{
-		return $this->value;
-	}
+			// If the key doesn't exist at this depth, we will just create an
+			// empty array to hold the next value, allowing us to create the
+			// arrays to hold final values at the correct depth. Then we'll
+			// keep digging into the array.
+			if (!isset($array[$key]) || !isArrayLike($array[$key]))
+			{
+				$array[$key] = new static();
+			}
 
-	/**
-	 * Method: count
-	 * =========================================================================
-	 * Provides the Countable Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function count()
-	{
-		return count($this->value);
-	}
-	
-	/**
-	 * Method: rewind
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * void
-	 */
-	public function rewind()
-	{
-		reset($this->value);
-	}
-	
-	/**
-	 * Method: current
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function current()
-	{
-		return $this->lazyLoadFluent(key($this->value));
-	}
-	
-	/**
-	 * Method: key
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function key()
-	{
-		return key($this->value);
-	}
-	
-	/**
-	 * Method: next
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * void
-	 */
-	public function next()
-	{
-		next($this->value);
-	}
-	
-	/**
-	 * Method: valid
-	 * =========================================================================
-	 * Provides the Iterator Implementation
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * int
-	 */
-	public function valid()
-	{
-		return key($this->value) !== null;
-	}
-	
-	/**
-	 * Method: offsetExists
-	 * =========================================================================
-	 * ArrayAccess method, checks to see if the key actually exists.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $index - The integer of the index to check.
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * boolean
-	 */
-	public function offsetExists($index)
-	{
-		return isset($this->value[$index]);
+			// Recurse into the array
+			$array =& $array[$key];
+		}
+
+		// Set the new value
+		$array[array_shift($keys)] = $value;
+
+		// Return ourselves to allow method chaining
+		return $this;
 	}
 
-	public function __isset($name)
+	/**
+	 * Method: add
+	 * =========================================================================
+	 * Add an item to the collection by key, if it doesn't exist.
+	 * 
+	 * For example:
+	 * 
+	 * ```php
+	 * $data = Arr::a(['a' => ['b' => ['c' => 'd']]]);
+	 * $data->add('a', '123'); // fails
+	 * $data->add('z', '123'); // works
+	 * ```
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $key - Can be a single key, "dot" separated keys or an array of keys.
+	 * $value - The value to set on the collection.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * static
+	 */
+	public function add($key, $value = null)
 	{
-		return $this->offsetExists($name);
+		if (is_null($value))
+		{
+			$this->offsetSet(null, $key);
+		}
+		else
+		{
+			if (is_null($this->get($key)))
+			{
+				$this->set($key, $value);
+			}
+		}
+
+		return $this;
 	}
-	
+
 	/**
 	 * Method: offsetGet
 	 * =========================================================================
-	 * ArrayAccess method, retrieves an array value.
+	 * Returns the value at specified offset.
+	 * See: http://php.net/manual/en/class.arrayaccess.php
+	 * 
+	 * *We have overloaded the ```\Illuminate\Support\Collection```
+	 * version so that we can provide a recursive interface.*
+	 * 
+	 * For example:
+	 * 
+	 * ```php
+	 * $data = Arr:a([[1,2,3]]);
+	 * print_r($data[0]);
+	 * ```
+	 * 
+	 * Results in:
+	 * 
+	 * ```
+	 * Gears\Arrays\Fluent Object
+	 * (
+	 * 		[items:protected] => Array
+	 * 		(
+	 * 			[0] => 1,
+	 * 			[1] => 2,
+	 * 			[2] => 3
+	 * 		)
+	 * )
+	 * ```
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $index - The integer of the index to get.
+	 * $key - The key of the underlying array to retrive.
 	 * 
 	 * Returns:
 	 * -------------------------------------------------------------------------
-	 * string
+	 * mixed
 	 */
-	public function offsetGet($index)
+	public function offsetGet($key)
 	{
-		if ($this->offsetExists($index))
-		{
-			return $this->lazyLoadFluent($index);
-		}
-		else
-		{
-			throw new InvalidOffset($index);
-		}
+		$value = parent::offsetGet($key);
+
+		if (is_array($value)) $this->offsetSet($key, new static($value));
+
+		return parent::offsetGet($key);
 	}
 
-	public function __get($name)
-	{
-		return $this->offsetGet($name);
-	}
-	
 	/**
-	 * Method: offsetSet
+	 * Method: getIterator
 	 * =========================================================================
-	 * ArrayAccess method, sets an array value.
+	 * This returns an array iterator so foreach works on our array like object.
+	 * See: http://php.net/manual/en/class.iteratoraggregate.php
+	 * 
+	 * *We have overloaded the ```\Illuminate\Support\Collection```
+	 * version so that we can provide a recursive interface.*
+	 * 
+	 * For example:
+	 * 
+	 * ```php
+	 * foreach (Arr::a([[1,2,3]]) as $item)
+	 * {
+	 *  	print_r($item);
+	 * }
+	 * ```
+	 * 
+	 * Results in:
+	 * 
+	 * ```
+	 * Gears\Arrays\Fluent Object
+	 * (
+	 * 		[items:protected] => Array
+	 * 		(
+	 * 			[0] => 1,
+	 * 			[1] => 2,
+	 * 			[2] => 3
+	 * 		)
+	 * )
+	 * ```
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $index - The integer of the index to set.
-	 * $val - The new value for the index.
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * \Gears\Arrays\Iterator
+	 */
+	public function getIterator()
+	{
+		return new Iterator($this->items);
+	}
+
+	/**
+	 * Method: __set
+	 * =========================================================================
+	 * This is a PHP Magic Method.
+	 * See: http://php.net/manual/en/language.oop5.magic.php
+	 * 
+	 * This enables the object access syntax:
+	 * 
+	 * ```php
+	 * $data = Arr::a();
+	 * $data->foo = 'bar';
+	 * print_r($data);
+	 * ```
+	 * 
+	 * The results of the above look like:
+	 * 
+	 * ```
+	 * Gears\Arrays\Fluent Object
+	 * (
+	 * 		[items:protected] => Array
+	 * 		(
+	 * 			'foo' => 'bar'
+	 * 		)
+	 * )
+	 * ```
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $name - The name or key of the item to set on the underlying array.
+	 * $value - The value toi set on the underlying array.
 	 * 
 	 * Returns:
 	 * -------------------------------------------------------------------------
 	 * void
 	 */
-	public function offsetSet($index, $value)
-	{
-		if (is_null($index))
-		{
-			$this->value[] = $value;
-		}
-		else
-		{
-			// This optionally allows dot notation - so you could do stuff like.
-			// $test['a.b.c'] = '123';
-			$this->set($index, $value);
-		}
-	}
-
 	public function __set($name, $value)
 	{
 		$this->offsetSet($name, $value);
 	}
-	
+
 	/**
-	 * Method: offsetUnset
+	 * Method: __get
 	 * =========================================================================
-	 * ArrayAccess method, removes an array value.
+	 * This is a PHP Magic Method.
+	 * See: http://php.net/manual/en/language.oop5.magic.php
+	 * 
+	 * This enables the object access syntax:
+	 * 
+	 * ```php
+	 * $data = Arr::a(['foo' => 'bar']);
+	 * echo $data->foo; // Outputs: bar
+	 * ```
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $index - The integer of the index to delete.
+	 * $name - The name or key of the item to get from the underlying array.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * mixed
+	 */
+	public function __get($name)
+	{
+		return $this->offsetGet($name);
+	}
+
+	/**
+	 * Method: __isset
+	 * =========================================================================
+	 * This is a PHP Magic Method.
+	 * See: http://php.net/manual/en/language.oop5.magic.php
+	 * 
+	 * This enables you to use isset() or empty() like so:
+	 * 
+	 * ```php
+	 * $data = Arr::a(['foo' => 'bar']);
+	 * isset($data->foo); // true
+	 * isset($data->bar); // false
+	 * ```
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $name - The name or key of the item to test on the underlying array.
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * bool
+	 */
+	public function __isset($name)
+	{
+		return $this->offsetExists($name);
+	}
+
+	/**
+	 * Method: __unset
+	 * =========================================================================
+	 * This is a PHP Magic Method.
+	 * See: http://php.net/manual/en/language.oop5.magic.php
+	 * 
+	 * This enables you to use unset() like so:
+	 * 
+	 * ```php
+	 * $data = Arr::a(['foo' => 'bar']);
+	 * isset($data->foo); // true
+	 * unset($data->foo);
+	 * isset($data->foo); // false
+	 * ```
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $name - The name or key of the item to test on the underlying array.
 	 * 
 	 * Returns:
 	 * -------------------------------------------------------------------------
 	 * void
 	 */
-	public function offsetUnset($index)
-	{
-		unset($this->value[$index]);
-	}
-
 	public function __unset($name)
 	{
-		return $this->offsetUnset($name);
-	}
-
-	/**
-	 * Method: serialize
-	 * =========================================================================
-	 * Serializable Interface
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * string
-	 */
-	public function serialize()
-	{
-		return serialize($this->toArray());
-	}
-
-	/**
-	 * Method: unserialize
-	 * =========================================================================
-	 * Serializable Interface
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $serialized - The string to turnh into a new object.
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * void
-	 */
-	public function unserialize($serialized)
-	{
-		$this->value = unserialize($serialized);
-	}
-
-	/**
-	 * Method: lazyLoadFluent
-	 * =========================================================================
-	 * So that we don't waste time recursively creating a heap of
-	 * Gears\Arrays\Fluent objects unnecessarily we only do so right before
-	 * they are needed.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $array - A PHP array to turn into a Gears\Arrays\Fluent object.
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * void
-	 */
-	private function lazyLoadFluent($key)
-	{
-		if (is_array($this->value[$key]))
-		{
-			$this->value[$key] = new static($this->value[$key]);
-		}
-
-		return $this->value[$key];
-	}
-	
-	/**
-	 * Method: __toString
-	 * =========================================================================
-	 * Magic method to turn ourselves into an easily readable
-	 * string representation of the array structure.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * n/a
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * string
-	 */
-	public function __toString()
-	{
-		return print_r($this->value, true);
-	}
-	
-	// Alias for above
-	public function toString()
-	{
-		return $this->__toString();
-	}
-	
-	/**
-	 * Method: toArray
-	 * =========================================================================
-	 * If you would like to just get a standard PHP array, call this.
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $recursive - Used on subsequent recursive calls
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * array
-	 */
-	public function toArray($recursive = false)
-	{
-		if (!$recursive) return $this->value;
-		
-		return array_map(function($array)
-		{
-			if ($array instanceof \Gears\Arrays\Fluent)
-			{
-				return $array->toArray(true);
-			}
-			else
-			{
-				return $array;
-			}
-		}, $this->value);
-	}
-	
-	/**
-	 * Method: hook
-	 * =========================================================================
-	 * Invokes a callback passing the underlying array as the argument,
-	 * ignoring the return value. Useful for debugging in the middle of a chain.
-	 * Can also be used to modify the object, although doing so is discouraged.
-	 * 
-	 * For example:
-	 * 
-	 * 	$obj = new Gears\Arrays\Fluent($array);
-	 * 	$obj
-	 * 		->filter(function ($v) { return $v % 2 != 0; })
-	 * 		->hook(function ($arr) { array_unshift($arr, 0); }) // Add back zero
-	 * 		->map(function ($v) { return $v * $v; })
-	 * 		->hook(function ($arr) { var_dump($arr); }) // Debug
-	 * 		->sum()
-	 * 	;
-	 * 
-	 * Parameters:
-	 * -------------------------------------------------------------------------
-	 * $callback - callable($array);
-	 * 
-	 * Returns:
-	 * -------------------------------------------------------------------------
-	 * self
-	 */
-	public function hook(\Closure $callback)
-	{
-		call_user_func_array($callback, [&$this->value]);
-		return $this;
+		$this->offsetUnset($name);
 	}
 
 	/**
 	 * Method: __call
 	 * =========================================================================
-	 * This is what creates the fluent api. This class is just a fancy
-	 * container and has no real functionality at all.
+	 * The existing methods in the ```Illuminate\Support\Collection``` class
+	 * are awesome. But there are some extra methods we would like to have
+	 * access to.
+	 * 
+	 * This will first look for a function under our \Gears\Arrays
+	 * namespace. If one is found we call that function for you, as if it
+	 * were a method of this class.
+	 * 
+	 * If we can't find a function there we then check for any macros that have
+	 * been defined on the \Gears\Arrays class. Again running that for you
+	 * automatically.
+	 * 
+	 * On failure of all that we finally throw an InvalidMethod Exception.
 	 * 
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $name - The name of the \Gears\String\"FUNCTION" to call.
+	 * $name - The name of the \Gears\Arrays\"FUNCTION" to call.
 	 * $arguments - The arguments to pass to the function.
 	 * 
 	 * Returns:
@@ -446,6 +445,8 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable, \Serializable
 			// Try a macro
 			if (\Gears\Arrays::hasMacro($name))
 			{
+				// Just a reminder that macros can't have values
+				// passed by reference due to __callStatic.
 				$func_name = '\Gears\Arrays::'.$name;
 			}
 			else
@@ -455,12 +456,28 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable, \Serializable
 			}
 		}
 
-		// Prepend the current string value to the arguments
-		// Some functions require a reference so we define it here.
-		// NOTE: Macros can't have values passed by reference.
-		$refrenced_args = [&$this->value];
-		foreach ($arguments as $arg) $refrenced_args[] = $arg;
-		$arguments = $refrenced_args;
+		// Prepend the current items to the arguments
+		// Some functions require a reference to the array so we define it here.
+		$new_args = [&$this->items];
+
+		foreach ($arguments as $arg)
+		{
+			// We also check for any arguments that might need
+			// to be transformed into an actual array. As most of
+			// the procedural functions expect real arrays and not
+			// ArrayLike objects.
+			if (isArrayLike($arg, true))
+			{
+				$new_args[] = $arg->toArray();
+			}
+			else
+			{
+				$new_args[] = $arg;
+			}
+		}
+
+		// Save the new arguments
+		$arguments = $new_args;
 
 		// Call the function
 		$result = call_user_func_array($func_name, $arguments);
