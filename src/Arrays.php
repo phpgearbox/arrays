@@ -23,6 +23,7 @@ class Arrays
 	use MacroableTrait
 	{
 		__callStatic as __macroCallStatic;
+		__call as __macroCall;
 	}
 	
 	/**

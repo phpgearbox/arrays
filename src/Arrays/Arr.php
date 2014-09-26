@@ -104,18 +104,11 @@ class Arr extends LaravelArr
 		// Return the entire array
 		if (is_null($keys)) return $array;
 
-		// Have we been given a string for the keys
-		if (is_string($keys))
-		{
-			// We found the key in the root of the array
-			if (isset($array[$keys]))
-			{
-				return $array[$keys];
-			}
+		// We found the key in the root of the array
+		if (isset($array[$keys])) return $array[$keys];
 
-			// Explode the keys string it into an array
-			$keys = explode('.', $keys);
-		}
+		// Have we been given a string for the keys
+		if (is_string($keys)) $keys = explode('.', $keys);
 		
 		// Better add in a check to make sure the keys are indeed an array.
 		if (!is_array($keys)) throw new \Exception('Must be an array!');

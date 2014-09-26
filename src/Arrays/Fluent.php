@@ -50,6 +50,11 @@ class Fluent implements \ArrayAccess, \Iterator, \Countable, \Serializable
 		return new static(is_array($items) ? $items : array($items));
 	}
 
+	public function all()
+	{
+		return $this->value;
+	}
+
 	/**
 	 * Method: count
 	 * =========================================================================

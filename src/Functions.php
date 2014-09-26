@@ -375,7 +375,21 @@ function flip($array)
  */
 function diff()
 {
-	return call_user_func_array('array_diff', func_get_args());
+	$args = array();
+
+	foreach (func_get_args() as $arg)
+	{
+		if (is_array($arg))
+		{
+			$args[] = $arg;
+		}
+		else
+		{
+			$args[] = $arg->all();
+		}
+	}
+
+	return call_user_func_array('array_diff', $args);
 }
 
 /**
@@ -397,7 +411,21 @@ function diff()
  */
 function intersect()
 {
-	return call_user_func_array('array_intersect', func_get_args());
+	$args = array();
+
+	foreach (func_get_args() as $arg)
+	{
+		if (is_array($arg))
+		{
+			$args[] = $arg;
+		}
+		else
+		{
+			$args[] = $arg->all();
+		}
+	}
+
+	return call_user_func_array('array_intersect', $args);
 }
 
 /**
@@ -417,9 +445,23 @@ function intersect()
  * -----------------------------------------------------------------------------
  * array
  */
-function merge($items)
+function merge()
 {
-	return call_user_func_array('array_merge', func_get_args());
+	$args = array();
+
+	foreach (func_get_args() as $arg)
+	{
+		if (is_array($arg))
+		{
+			$args[] = $arg;
+		}
+		else
+		{
+			$args[] = $arg->all();
+		}
+	}
+
+	return call_user_func_array('array_merge', $args);
 }
 
 /**
