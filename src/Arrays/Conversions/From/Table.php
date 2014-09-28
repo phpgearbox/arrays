@@ -1,4 +1,4 @@
-<?php
+<?php namespace Gears\Arrays\Conversions\From;
 ////////////////////////////////////////////////////////////////////////////////
 // __________ __             ________                   __________              
 // \______   \  |__ ______  /  _____/  ____ _____ ______\______   \ _______  ___
@@ -11,9 +11,11 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Gears\Arrays\Conversions\From;
+use \Zend\Dom\Query;
+use \Gears\Arrays\Conversions\Template;
+use \Gears\Arrays\Conversions\From\Dom;
 
-class Table extends \Gears\Arrays\Conversions\Template
+class Table extends Template
 {
 	/**
 	 * Property: table_location
@@ -58,7 +60,7 @@ class Table extends \Gears\Arrays\Conversions\Template
 		$data = str_replace(['<th', '</th'], ['<td', '</td'], $data);
 		
 		// Create a new dom object
-		$dom = new \Zend\Dom\Query($data);
+		$dom = new Query($data);
 		
 		// Find the table within the document
 		switch ($this->query_type)
@@ -68,7 +70,7 @@ class Table extends \Gears\Arrays\Conversions\Template
 		}
 		
 		// Convert the table node into an array
-		$array = new \Gears\Arrays\Conversions\From\Dom();
+		$array = new Dom();
 		$dom_array = $array->Convert($table->current());
 		
 		// Then tidy up that array

@@ -1,4 +1,4 @@
-<?php
+<?php namespace Gears\Arrays\Conversions\From;
 ////////////////////////////////////////////////////////////////////////////////
 // __________ __             ________                   __________              
 // \______   \  |__ ______  /  _____/  ____ _____ ______\______   \ _______  ___
@@ -11,9 +11,9 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Gears\Arrays\Conversions\From;
+use \Gears\Arrays\Conversions\Template;
 
-class Lines extends \Gears\Arrays\Conversions\Template
+class Lines extends Template
 {
 	/**
 	 * Property: memory

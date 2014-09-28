@@ -66,7 +66,7 @@ class Arrays extends LaravelArray
 	public static function add($array, $key, $value)
 	{
 		// this allows the key to be an array of keys
-		if (isArrayLike($key)) $key = implode('.', $key);
+		if (\Gears\Arrays\isArrayLike($key)) $key = implode('.', $key);
 
 		return parent::add($array, $key, $value);
 	}
@@ -98,7 +98,7 @@ class Arrays extends LaravelArray
 	public static function get($array, $key, $default = null)
 	{
 		// this allows the key to be an array of keys
-		if (isArrayLike($key)) $key = implode('.', $key);
+		if (\Gears\Arrays\isArrayLike($key)) $key = implode('.', $key);
 
 		return parent::get($array, $key, $default);
 	}
@@ -130,7 +130,7 @@ class Arrays extends LaravelArray
 	public static function set(&$array, $key, $value)
 	{
 		// this allows the key to be an array of keys
-		if (isArrayLike($key)) $key = implode('.', $key);
+		if (\Gears\Arrays\isArrayLike($key)) $key = implode('.', $key);
 
 		return parent::set($array, $key, $value);
 	}
@@ -161,13 +161,13 @@ class Arrays extends LaravelArray
 	public static function forget(&$array, $keys)
 	{
 		// this allows the key to be an array of keys
-		if (isArrayLike($keys))
+		if (\Gears\Arrays\isArrayLike($keys))
 		{
 			$new_keys = [];
 
 			foreach ($keys as $key)
 			{
-				if (isArrayLike($key))
+				if (\Gears\Arrays\isArrayLike($key))
 				{
 					$new_keys[] = implode('.', $key);
 				}
@@ -209,7 +209,7 @@ class Arrays extends LaravelArray
 	public static function fetch($array, $key)
 	{
 		// this allows the key to be an array of keys
-		if (isArrayLike($key)) $key = implode('.', $key);
+		if (\Gears\Arrays\isArrayLike($key)) $key = implode('.', $key);
 
 		return parent::fetch($array, $key);
 	}
