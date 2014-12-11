@@ -18,6 +18,60 @@ use \Gears\Arrays\Exceptions\InvalidMethod;
 class Fluent extends Collection
 {
 	/**
+	 * Method: convert
+	 * =========================================================================
+	 * This is a convenience front end to our conversion classes.
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * This method uses some smart dynamic parameters matching.
+	 * Best shown with an example:
+	 *
+	 * ```php
+	 * Arr::a([1,2,3])->convert('csv') // 1,2,3
+	 * Arr::a()->convert('1,2,3', 'csv') // array(1,2,3)
+	 * Arr::a([1,2,3])->convert('csv', ['delimiter' => "-"]) // 1-2-3
+	 * Arr::a()->convert('1-2-3', 'csv', ['delimiter' => "-"]) // array(1,2,3)
+	 * ```
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * mixed
+	 */
+	public function convert($arg1, $arg2 = null, $arg3 = array())
+	{
+		// Create the converter class names
+		if (is_null($arg2) || is_array($arg2))
+		{
+			$converter = '\Gears\Arrays\Conversions\To\\'.ucfirst($arg1);
+			$data = $this->items;
+			$options = $arg2;
+		}
+		else
+		{
+			$converter = '\Gears\Arrays\Conversions\From\\'.ucfirst($arg2);
+			$data = $arg1;
+			$options = $arg3;
+		}
+
+		// Initiate a new converter
+		$converter =  new $converter($options);
+
+		// Run the conversion
+		$results = $converter->Convert($data);
+
+		// Return a new version of ourself if the result is an array
+		if (is_array($results))
+		{
+			return new static($results);
+		}
+		else
+		{
+			return $results;
+		}
+	}
+
+	/**
 	 * Method: get
 	 * =========================================================================
 	 * Get an item from the collection by key.

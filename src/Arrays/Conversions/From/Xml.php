@@ -1,4 +1,4 @@
-<?php
+<?php namespace Gears\Arrays\Conversions\From;
 ////////////////////////////////////////////////////////////////////////////////
 // __________ __             ________                   __________              
 // \______   \  |__ ______  /  _____/  ____ _____ ______\______   \ _______  ___
@@ -11,9 +11,10 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Gears\Arrays\Conversions\From;
+use \Zend\Json\Json;
+use \Gears\Arrays\Conversions\Template;
 
-class Xml extends \Gears\Arrays\Conversions\Template
+class Xml extends Template
 {
 	/**
 	 * Property: drop_attributes
@@ -38,7 +39,7 @@ class Xml extends \Gears\Arrays\Conversions\Template
 	public function Convert($data)
 	{
 		// Convert XML To JSON
-		$json = \Zend\Json\Json::fromXml($data, $this->drop_attributes);
+		$json = Json::fromXml($data, $this->drop_attributes);
 		
 		// Convert the Json to PHP Array
 		return json_decode($json, true);

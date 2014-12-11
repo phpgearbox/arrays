@@ -1,4 +1,4 @@
-<?php
+<?php namespace Gears\Arrays\Conversions\To;
 ////////////////////////////////////////////////////////////////////////////////
 // __________ __             ________                   __________              
 // \______   \  |__ ______  /  _____/  ____ _____ ______\______   \ _______  ___
@@ -11,9 +11,10 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace Gears\Arrays\Conversions\To;
+use \XmlWriter;
+use \Gears\Arrays\Conversions\Template;
 
-class Xml extends \Gears\Arrays\Conversions\Template
+class Xml extends Template
 {
 	/**
 	 * Property: indent
