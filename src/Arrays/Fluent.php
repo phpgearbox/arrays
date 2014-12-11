@@ -66,10 +66,10 @@ class Fluent extends Collection
 		$array = $this->items;
 
 		// Loop through the keys
-		foreach ($keys as $key)
+		foreach ($keys as $x)
 		{
 			// Check to see if the key exists
-			if (!isArrayLike($array) || !array_key_exists($key, $array))
+			if (!isArrayLike($array) || !array_key_exists($x, $array))
 			{
 				// Bail out and return the default.
 				// NOTE: value() is a laravel helper.
@@ -77,11 +77,21 @@ class Fluent extends Collection
 			}
 
 			// Keep recursing into the array
-			$array = $array[$key];
+			$array = $array[$x];
+		}
+
+		if (is_array($array))
+		{
+			$value = new static($array);
+			$this->set($key, $value);
+		}
+		else
+		{
+			$value = $array;
 		}
 		
 		// Return the value
-		return $array;
+		return $value;
 	}
 
 	/**
