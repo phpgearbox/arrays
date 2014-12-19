@@ -80,8 +80,8 @@ class Iterator extends RecursiveArrayIterator
 	 */
 	public function getChildren()
 	{
-		if ($this->hasChildren()) return $this->current();
-
+		if ($this->hasChildren()) return $this->current()->getIterator();
+		
 		throw new InvalidArgumentException('Current item not an array!');
 	}
 }
