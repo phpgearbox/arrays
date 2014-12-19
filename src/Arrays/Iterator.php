@@ -11,10 +11,11 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-use \ArrayIterator;
+use \RecursiveArrayIterator;
+use \InvalidArgumentException;
 use \Gears\Arrays\Fluent;
 
-class Iterator extends ArrayIterator
+class Iterator extends RecursiveArrayIterator
 {
 	/**
 	 * Method: current
@@ -42,5 +43,45 @@ class Iterator extends ArrayIterator
 		if (is_array($value)) $this->offsetSet($key, new Fluent($value));
 
 		return parent::offsetGet($key);
+	}
+
+	/**
+	 * Method: hasChildren
+	 * =========================================================================
+	 * Check to see if we have children, ie: multi-dimensional array.
+	 * See: http://php.net/manual/en/recursivearrayiterator.haschildren.php
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * boolean
+	 */
+	public function hasChildren()
+	{
+		return isArrayLike($this->current());
+	}
+
+	/**
+	 * Method: getChildren
+	 * =========================================================================
+	 * Returns our children.
+	 * See: http://php.net/manual/en/recursivearrayiterator.getchildren.php
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * mixed
+	 */
+	public function getChildren()
+	{
+		if ($this->hasChildren()) return $this->current();
+
+		throw new InvalidArgumentException('Current item not an array!');
 	}
 }
