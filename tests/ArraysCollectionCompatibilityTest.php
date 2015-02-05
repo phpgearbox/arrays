@@ -14,8 +14,8 @@
 use Mockery as m;
 use Gears\Arrays\Fluent as Collection;
 
-class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
-{
+class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase {
+
 	public function testFirstReturnsFirstItemInCollection()
 	{
 		$c = new Collection(array('foo', 'bar'));
@@ -59,9 +59,9 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 
 	public function testToArrayCallsToArrayOnEachItemInCollection()
 	{
-		$item1 = m::mock('Illuminate\Support\Contracts\ArrayableInterface');
+		$item1 = m::mock('Illuminate\Contracts\Support\Arrayable');
 		$item1->shouldReceive('toArray')->once()->andReturn('foo.array');
-		$item2 = m::mock('Illuminate\Support\Contracts\ArrayableInterface');
+		$item2 = m::mock('Illuminate\Contracts\Support\Arrayable');
 		$item2->shouldReceive('toArray')->once()->andReturn('bar.array');
 		$c = new Collection(array($item1, $item2));
 		$results = $c->toArray();
@@ -106,7 +106,7 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 	public function testCountable()
 	{
 		$c = new Collection(array('foo', 'bar'));
-		$this->assertEquals(2, count($c));
+		$this->assertCount(2, $c);
 	}
 
 
@@ -132,6 +132,15 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 		{
 			return $item['id'] == 2;
 		})->all());
+	}
+
+
+	public function testWhere()
+	{
+		$c = new Collection([['v' => 1], ['v' => 2], ['v' => 3], ['v' => '3'], ['v' => 4]]);
+
+		$this->assertEquals([['v' => 3]], $c->where('v', 3)->values()->all());
+		$this->assertEquals([['v' => 3], ['v' => '3']], $c->whereLoose('v', 3)->values()->all());
 	}
 
 
@@ -256,7 +265,7 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 	}
 
 
-	public function testChunk ()
+	public function testChunk()
 	{
 		$data = new Collection(array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
 		$data = $data->chunk(3);
@@ -272,6 +281,18 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 	public function testListsWithArrayAndObjectValues()
 	{
 		$data = new Collection(array((object) array('name' => 'taylor', 'email' => 'foo'), array('name' => 'dayle', 'email' => 'bar')));
+		$this->assertEquals(array('taylor' => 'foo', 'dayle' => 'bar'), $data->lists('email', 'name'));
+		$this->assertEquals(array('foo', 'bar'), $data->lists('email'));
+	}
+
+
+	public function testListsWithArrayAccessValues()
+	{
+		$data = new Collection(array(
+			new TestArrayAccessImplementation(array('name' => 'taylor', 'email' => 'foo')),
+			new TestArrayAccessImplementation(array('name' => 'dayle', 'email' => 'bar'))
+		));
+
 		$this->assertEquals(array('taylor' => 'foo', 'dayle' => 'bar'), $data->lists('email', 'name'));
 		$this->assertEquals(array('foo', 'bar'), $data->lists('email'));
 	}
@@ -332,6 +353,80 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 	{
 		$collection = Collection::make('foo');
 		$this->assertEquals(array('foo'), $collection->all());
+	}
+
+
+	public function testMakeMethodFromNull()
+	{
+		$collection = Collection::make(null);
+		$this->assertEquals([], $collection->all());
+
+		$collection = Collection::make();
+		$this->assertEquals([], $collection->all());
+	}
+
+
+	public function testMakeMethodFromCollection()
+	{
+		$firstCollection = Collection::make(['foo' => 'bar']);
+		$secondCollection = Collection::make($firstCollection);
+		$this->assertEquals(['foo' => 'bar'], $secondCollection->all());
+	}
+
+
+	public function testMakeMethodFromArray()
+	{
+		$collection = Collection::make(['foo' => 'bar']);
+		$this->assertEquals(['foo' => 'bar'], $collection->all());
+	}
+
+	public function testConstructMakeFromObject()
+	{
+		$object = new stdClass();
+		$object->foo = 'bar';
+		$collection = Collection::make($object);
+		$this->assertEquals(['foo' => 'bar'], $collection->all());
+	}
+
+
+	public function testConstructMethod()
+	{
+		$collection = new Collection('foo');
+		$this->assertEquals(array('foo'), $collection->all());
+	}
+
+
+	public function testConstructMethodFromNull()
+	{
+		$collection = new Collection(null);
+		$this->assertEquals([], $collection->all());
+
+		$collection = new Collection();
+		$this->assertEquals([], $collection->all());
+	}
+
+
+	public function testConstructMethodFromCollection()
+	{
+		$firstCollection = new Collection(['foo' => 'bar']);
+		$secondCollection = new Collection($firstCollection);
+		$this->assertEquals(['foo' => 'bar'], $secondCollection->all());
+	}
+
+
+	public function testConstructMethodFromArray()
+	{
+		$collection = new Collection(['foo' => 'bar']);
+		$this->assertEquals(['foo' => 'bar'], $collection->all());
+	}
+
+
+	public function testConstructMethodFromObject()
+	{
+		$object = new stdClass();
+		$object->foo = 'bar';
+		$collection = new Collection($object);
+		$this->assertEquals(['foo' => 'bar'], $collection->all());
 	}
 
 
@@ -401,8 +496,12 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 	public function testKeyByAttribute()
 	{
 		$data = new Collection([['rating' => 1, 'name' => '1'], ['rating' => 2, 'name' => '2'], ['rating' => 3, 'name' => '3']]);
+
 		$result = $data->keyBy('rating');
 		$this->assertEquals([1 => ['rating' => 1, 'name' => '1'], 2 => ['rating' => 2, 'name' => '2'], 3 => ['rating' => 3, 'name' => '3']], $result->all());
+
+		$result = $data->keyBy(function($item){ return $item['rating'] * 2; });
+		$this->assertEquals([2 => ['rating' => 1, 'name' => '1'], 4 => ['rating' => 2, 'name' => '2'], 6 => ['rating' => 3, 'name' => '3']], $result->all());
 	}
 
 
@@ -414,6 +513,11 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 		$this->assertFalse($c->contains(2));
 		$this->assertTrue($c->contains(function($value) { return $value < 5; }));
 		$this->assertFalse($c->contains(function($value) { return $value > 5; }));
+
+		$c = new Collection([['v' => 1], ['v' => 3], ['v' => 5]]);
+
+		$this->assertTrue($c->contains('v', 1));
+		$this->assertFalse($c->contains('v', 2));
 	}
 
 
@@ -424,6 +528,13 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 
 		$c = new Collection(array((object) array('foo' => 50), (object) array('foo' => 50)));
 		$this->assertEquals(100, $c->sum(function($i) { return $i->foo; }));
+	}
+
+
+	public function testCanSumValuesWithoutACallback()
+	{
+		$c = new Collection([1, 2, 3, 4, 5]);
+		$this->assertEquals(15, $c->sum());
 	}
 
 
@@ -491,7 +602,16 @@ class ArraysCollectionCompatibilityTest extends PHPUnit_Framework_TestCase
 	public function testKeys()
 	{
 		$c = new Collection(array('name' => 'taylor', 'framework' => 'laravel'));
-		$this->assertEquals(array('name', 'framework'), $c->keys());
+		$this->assertEquals(array('name', 'framework'), $c->keys()->all());
+	}
+
+
+	public function testPaginate()
+	{
+		$c = new Collection(['one', 'two', 'three', 'four']);
+		$this->assertEquals(['one', 'two'], $c->forPage(1, 2)->all());
+		$this->assertEquals(['three', 'four'], $c->forPage(2, 2)->all());
+		$this->assertEquals([], $c->forPage(3, 2)->all());
 	}
 
 }
@@ -516,9 +636,50 @@ class TestAccessorEloquentTestStub
 		return $this->$attribute;
 	}
 
+	public function __isset($attribute)
+	{
+		$accessor = 'get' .lcfirst($attribute). 'Attribute';
+
+		if (method_exists($this, $accessor)) {
+			return !is_null($this->$accessor());
+		}
+
+		return isset($this->$attribute);
+	}
+
 
 	public function getSomeAttribute()
 	{
 		return $this->attributes['some'];
+	}
+}
+
+class TestArrayAccessImplementation implements ArrayAccess
+{
+	private $arr;
+
+	public function __construct($arr)
+	{
+		$this->arr = $arr;
+	}
+
+	public function offsetExists($offset)
+	{
+		return isset($this->arr[$offset]);
+	}
+
+	public function offsetGet($offset)
+	{
+		return $this->arr[$offset];
+	}
+
+	public function offsetSet($offset, $value)
+	{
+		$this->arr[$offset] = $value;
+	}
+
+	public function offsetUnset($offset)
+	{
+		unset($this->arr[$offset]);
 	}
 }

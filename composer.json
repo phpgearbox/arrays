@@ -13,8 +13,8 @@
 	{
 		"zendframework/zend-dom": "2.2.x",
 		"zendframework/zend-json": "2.2.x",
-		"illuminate/support": "4.*",
-		"patchwork/utf8": "1.1.*"
+		"illuminate/support": "5.*",
+		"patchwork/utf8": "1.*"
 	},
 	"require-dev":
 	{
@@ -22,6 +22,6 @@
 		"codegyre/robo": "*",
 		"guzzlehttp/guzzle": "4.*",
 		"mockery/mockery": "~0.9",
-		"illuminate/database": "4.*"
+		"illuminate/database": "5.*"
 	}
 }
